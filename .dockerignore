@@ -1,0 +1,22 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+.venv/
+*.pyc
+__pycache__/
+*.egg-info/
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# IDEs and local files
+.idea/
+*.log
+
+# Project-specific
+uploads/
+README.md

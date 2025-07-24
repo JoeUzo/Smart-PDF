@@ -1,17 +1,25 @@
 # Use an official Python runtime as a parent image
-FROM python:3.10-slim
+FROM python:3.12-slim
 
-# Set the working directory in the container
+# Prevent Python from writing .pyc files and enable stdout/stderr buffering
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Set the working directory
 WORKDIR /app
 
-# Copy the requirements file into the container at /app
-COPY ./requirements.txt /app/requirements.txt
+# Copy dependency files first for better caching
+COPY setup.py /app/
+COPY requirements.txt /app/
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application's code into the container at /app
+# Copy the rest of the application code
 COPY . /app
 
-# Command to run the uvicorn server
+# Expose port
+EXPOSE 80
+
+# Run the Uvicorn server
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
