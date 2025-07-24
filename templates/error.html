@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Error - Smart PDF{% endblock %}
+
+{% block content %}
+<div class="container text-center">
+    <h1 class="my-4">An Error Occurred</h1>
+    <div class="alert alert-danger" role="alert">
+        <p>{{ message }}</p>
+    </div>
+    <a href="/" class="btn btn-primary">Go back to Home</a>
+</div>
+{% endblock %}

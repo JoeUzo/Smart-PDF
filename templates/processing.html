@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Processing... - Smart PDF{% endblock %}
+
+{% block content %}
+<div class="container text-center">
+    <h1 class="my-4">Your file is being processed...</h1>
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="lead mt-3">Please wait, this may take a moment.</p>
+    <div id="error-container" class="alert alert-danger mt-3" style="display: none;" role="alert"></div>
+</div>
+
+<script>
+    const taskId = "{{ task_id }}";
+    const interval = setInterval(() => {
+        fetch(`/status/${taskId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.state === 'SUCCESS') {
+                    clearInterval(interval);
+                    // The result from the task is the relative path, e.g., "task_id/filename.pdf"
+                    // We split it to get the task_id and filename for the preview URL
+                    const pathParts = data.result.split('/');
+                    const resultTaskId = pathParts[0];
+                    const resultFilename = pathParts[1];
+                    window.location.href = `/preview/${resultTaskId}/${resultFilename}`;
+                } else if (data.state === 'FAILURE') {
+                    clearInterval(interval);
+                    const errorContainer = document.getElementById('error-container');
+                    errorContainer.textContent = `An error occurred during processing. Please try again.`;
+                    errorContainer.style.display = 'block';
+                }
+                // If state is PENDING or other, we just continue polling.
+            })
+            .catch(error => {
+                clearInterval(interval);
+                console.error('Error fetching task status:', error);
+                const errorContainer = document.getElementById('error-container');
+                errorContainer.textContent = 'Could not retrieve processing status. Please check your connection and try again.';
+                errorContainer.style.display = 'block';
+            });
+    }, 3000); // Poll every 3 seconds
+</script>
+{% endblock %}

@@ -1,20 +1,32 @@
 {% extends "base.html" %}
 
-{% block title %}Download File - Smart PDF{% endblock %}
+{% block title %}Preview - Smart PDF{% endblock %}
 
 {% block content %}
 <div class="container text-center">
-    <h1 class="my-4">Your file is ready!</h1>
-    <p class="lead">Click the button below to download your file.</p>
-    
-    <div class="my-4">
-        {% if file_path.endswith('.pdf') %}
-        <iframe src="{{ url_for('static_file', path=file_path) }}" width="100%" height="500px"></iframe>
-        {% else %}
-        <p>No preview available for this file type.</p>
-        {% endif %}
+    <h1 class="my-4">Your File is Ready!</h1>
+    <p class="lead">Preview your processed file below or download it directly.</p>
+
+    <div class="card my-4">
+        <div class="card-header">
+            File Preview: {{ filename }}
+        </div>
+        <div class="card-body" style="height: 60vh;">
+            <!-- Embed PDF for preview, or show a message for other types -->
+            {% if filename.lower().endswith('.pdf') %}
+                <object data="{{ file_path }}" type="application/pdf" width="100%" height="100%">
+                    <p>Your browser does not support PDFs. <a href="{{ download_url }}">Download the PDF</a>.</p>
+                </object>
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    Preview is not available for this file type. Please download the file to view it.
+                </div>
+            {% endif %}
+        </div>
     </div>
 
-    <a href="{{ url_for('download', file_path=file_path) }}" class="btn btn-primary btn-lg">Download</a>
+    <a href="{{ download_url }}" class="btn btn-primary btn-lg">
+        <i class="fas fa-download"></i> Download {{ filename }}
+    </a>
 </div>
 {% endblock %}
