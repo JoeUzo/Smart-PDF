@@ -11,4 +11,4 @@ redis
 aiofiles
 python-multipart
 gunicorn
-dotenv
+Pillow

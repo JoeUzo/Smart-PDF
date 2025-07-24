@@ -1,30 +1,41 @@
 from celery import Celery
 import os
 from dotenv import load_dotenv
+import logging
+import shutil
+import zipfile
+from PIL import Image
 
 load_dotenv()
 
 celery_app = Celery(
-    "tasks",
-    broker=os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0"),
-    backend=os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/0"),
+  "tasks",
+  broker=os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0"),
+  backend=os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
 )
+
+logger = logging.getLogger(__name__)
 
 @celery_app.task
 def merge_pdfs_task(file_paths, output_path):
-    from pypdf import PdfMerger
-    merger = PdfMerger()
-    for file_path in file_paths:
-        merger.append(file_path)
-    merger.write(output_path)
-    merger.close()
-    return output_path
+    from pypdf import PdfWriter
+    logger.info(f"Merging PDFs: {file_paths} into {output_path}")
+    writer = PdfWriter()
+    try:
+        for file_path in file_paths:
+            logger.info(f"Appending {file_path}")
+            writer.append(file_path)
+        writer.write(output_path)
+        writer.close()
+        logger.info("Merge successful")
+        return output_path
+    except Exception as e:
+        logger.error(f"Error merging PDFs: {e}", exc_info=True)
+        # Reraise the exception to mark the task as failed
+        raise
 
 @celery_app.task
 def split_pdf_task(file_path, ranges, output_dir):
-    import os
-    import shutil
-    import zipfile
     from pypdf import PdfReader, PdfWriter
 
     reader = PdfReader(file_path)
@@ -84,6 +95,35 @@ def word_to_pdf_task(file_path, output_path):
 def compress_pdf_task(file_path, output_path):
     import pikepdf
     pdf = pikepdf.open(file_path)
-    pdf.save(output_path, compress_streams=True, linearize=True)
+    pdf.save(output_path, compress_streams=True, recompress_flate=True)
     pdf.close()
+    return output_path
+
+@celery_app.task
+def compress_word_task(file_path, output_path):
+    temp_dir = "temp_word_unzip"
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
+    os.makedirs(temp_dir)
+
+    with zipfile.ZipFile(file_path, 'r') as zip_ref:
+        zip_ref.extractall(temp_dir)
+
+    media_dir = os.path.join(temp_dir, "word", "media")
+    if os.path.exists(media_dir):
+        for filename in os.listdir(media_dir):
+            image_path = os.path.join(media_dir, filename)
+            try:
+                img = Image.open(image_path)
+                img.save(image_path, optimize=True, quality=85)
+            except Exception as e:
+                logger.error(f"Could not compress image {filename}: {e}")
+
+    with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+        for root, _, files in os.walk(temp_dir):
+            for file in files:
+                file_path_in_zip = os.path.relpath(os.path.join(root, file), temp_dir)
+                zip_ref.write(os.path.join(root, file), file_path_in_zip)
+
+    shutil.rmtree(temp_dir)
     return output_path

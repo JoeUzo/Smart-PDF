@@ -3,7 +3,7 @@ import shutil
 import zipfile
 from typing import List
 from fastapi import FastAPI, Request, UploadFile, File, Form
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import aiofiles
@@ -13,6 +13,8 @@ app = FastAPI()
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="static_file")
+
 
 # Setup templates
 templates = Jinja2Templates(directory="templates")
@@ -50,7 +52,7 @@ async def merge_pdfs(request: Request, files: List[UploadFile] = File(...)):
     for file_path in file_paths:
         os.remove(file_path)
 
-    return FileResponse(result_path, media_type='application/pdf', filename=output_filename)
+    return RedirectResponse(url=f"/preview/{os.path.basename(result_path)}", status_code=303)
 
 @app.get("/split", response_class=HTMLResponse)
 async def split_page(request: Request):
@@ -69,7 +71,7 @@ async def split_pdf(request: Request, file: UploadFile = File(...), ranges: str 
     
     os.remove(file_path)
 
-    return FileResponse(result_path, media_type='application/zip', filename=os.path.basename(result_path))
+    return RedirectResponse(url=f"/preview/{os.path.basename(result_path)}", status_code=303)
 
 
 @app.get("/pdf-to-word", response_class=HTMLResponse)
@@ -91,7 +93,7 @@ async def pdf_to_word(request: Request, file: UploadFile = File(...)):
 
     os.remove(file_path)
 
-    return FileResponse(result_path, media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document', filename=output_filename)
+    return RedirectResponse(url=f"/preview/{os.path.basename(result_path)}", status_code=303)
 
 @app.get("/word-to-pdf", response_class=HTMLResponse)
 async def word_to_pdf_page(request: Request):
@@ -112,7 +114,7 @@ async def word_to_pdf(request: Request, file: UploadFile = File(...)):
 
     os.remove(file_path)
 
-    return FileResponse(result_path, media_type='application/pdf', filename=output_filename)
+    return RedirectResponse(url=f"/preview/{os.path.basename(result_path)}", status_code=303)
 
 @app.get("/compress", response_class=HTMLResponse)
 async def compress_page(request: Request):
@@ -131,14 +133,26 @@ async def compress_document(request: Request, file: UploadFile = File(...)):
     if file.content_type == "application/pdf":
         task = compress_pdf_task.delay(file_path, output_path)
         result_path = task.get()
+    elif file.content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        task = compress_word_task.delay(file_path, output_path)
+        result_path = task.get()
     else:
-        # For Word documents, just copy the file for now
+        # For other file types, just copy the file for now
         shutil.copy(file_path, output_path)
         result_path = output_path
 
     os.remove(file_path)
 
-    return FileResponse(result_path, media_type=file.content_.type, filename=output_filename)
+    return RedirectResponse(url=f"/preview/{os.path.basename(result_path)}", status_code=303)
+
+@app.get("/preview/{file_path:path}", response_class=HTMLResponse)
+async def preview_page(request: Request, file_path: str):
+    return templates.TemplateResponse("preview.html", {"request": request, "file_path": file_path})
+
+@app.get("/download/{file_path:path}", name="download")
+async def download_file(file_path: str):
+    file_abs_path = os.path.join(UPLOAD_DIR, file_path)
+    return FileResponse(file_abs_path, media_type='application/octet-stream', filename=os.path.basename(file_path))
 
 
 if __name__ == "__main__":

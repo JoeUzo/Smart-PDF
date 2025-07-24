@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Download File - Smart PDF{% endblock %}
+
+{% block content %}
+<div class="container text-center">
+    <h1 class="my-4">Your file is ready!</h1>
+    <p class="lead">Click the button below to download your file.</p>
+    
+    <div class="my-4">
+        {% if file_path.endswith('.pdf') %}
+        <iframe src="{{ url_for('static_file', path=file_path) }}" width="100%" height="500px"></iframe>
+        {% else %}
+        <p>No preview available for this file type.</p>
+        {% endif %}
+    </div>
+
+    <a href="{{ url_for('download', file_path=file_path) }}" class="btn btn-primary btn-lg">Download</a>
+</div>
+{% endblock %}
