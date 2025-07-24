@@ -12,4 +12,4 @@ aiofiles
 python-multipart
 gunicorn
 Pillow
-python-dotenvd
+python-dotenv
