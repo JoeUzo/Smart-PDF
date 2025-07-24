@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Compress Document - Smart PDF{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4">Compress Document</h1>
+    <form action="/compress" method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="file" class="form-label">Select a PDF or Word file to compress</label>
+            <input type="file" class="form-control" id="file" name="file" accept=".pdf,.doc,.docx">
+        </div>
+        <button type="submit" class="btn btn-primary">Compress</button>
+    </form>
+</div>
+{% endblock %}

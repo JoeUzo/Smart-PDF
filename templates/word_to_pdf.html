@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Word to PDF - Smart PDF{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4">Word to PDF</h1>
+    <form action="/word-to-pdf" method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="file" class="form-label">Select a Word file to convert</label>
+            <input type="file" class="form-control" id="file" name="file" accept=".doc,.docx">
+        </div>
+        <button type="submit" class="btn btn-primary">Convert</button>
+    </form>
+</div>
+{% endblock %}

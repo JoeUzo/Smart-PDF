@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+jinja2
+pypdf
+pdf2docx
+python-docx
+docx2pdf
+pikepdf
+celery
+redis
+aiofiles
+python-multipart
+gunicorn
+dotenv

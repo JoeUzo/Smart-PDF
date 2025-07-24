@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Split PDF - Smart PDF{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4">Split PDF</h1>
+    <form action="/split" method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="file" class="form-label">Select a PDF file to split</label>
+            <input type="file" class="form-control" id="file" name="file" accept=".pdf">
+        </div>
+        <div class="mb-3">
+            <label for="ranges" class="form-label">Page ranges (e.g., 1-3, 5, 7-)</label>
+            <input type="text" class="form-control" id="ranges" name="ranges" placeholder="Leave blank to extract all pages">
+        </div>
+        <button type="submit" class="btn btn-primary">Split</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Merge PDFs - Smart PDF{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4">Merge PDFs</h1>
+    <form action="/merge" method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="files" class="form-label">Select PDF files to merge</label>
+            <input type="file" class="form-control" id="files" name="files" multiple accept=".pdf">
+        </div>
+        <button type="submit" class="btn btn-primary">Merge</button>
+    </form>
+</div>
+{% endblock %}
