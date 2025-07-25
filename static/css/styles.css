@@ -71,3 +71,11 @@ body {
 .message-wrapper.assistant {
     justify-content: flex-start;
 }
+
+.navbar-nav .nav-link {
+    transition: color .2s;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #ffffff; /* White */
+}

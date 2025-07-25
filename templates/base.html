@@ -10,7 +10,37 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">Smart PDF</a>
+            <a class="navbar-brand" href="/">
+                <strong>Smart PDF</strong>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/merge">Merge</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/split">Split</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/compress">Compress</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Convert
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="/pdf-to-word">PDF to Word</a></li>
+                            <li><a class="dropdown-item" href="/word-to-pdf">Word to PDF</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/summarize">Summarize & Chat</a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
 
