@@ -3,64 +3,82 @@
 {% block title %}Home - Smart PDF{% endblock %}
 
 {% block content %}
-<div class="container text-center">
-    <h1 class="my-4">Welcome to Smart PDF</h1>
-    <p class="lead">A simple tool to manage your PDF and Word documents.</p>
-    <div class="row g-4 justify-content-center">
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Summarize & Chat with PDF</h5>
-                    <p class="card-text">Use AI to summarize and ask questions about your PDF documents.</p>
-                    <a href="/summarize" class="btn btn-primary">Go to Summarize</a>
-                </div>
+<div class="text-center">
+    <h1 class="text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 sm:text-6xl font-serif">Smart PDF</h1>
+    <p class="mt-6 text-lg leading-8 text-neutral-600 dark:text-neutral-400">Your all-in-one solution for PDF management.</p>
+</div>
+
+<div class="mt-16 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+    <a href="/summarize" class="group block rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-neutral-800/50 p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1">
+        <div class="flex items-start gap-4">
+            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m4 18 1.5-1.5.5.5L4.5 18.5.5 20l1.5-4Z"/><path d="m2.5 16.5.5.5L4.5 15H6v-1.5l-1.5-1.5-.5.5L2.5 14Z"/></svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold font-serif text-neutral-900 dark:text-neutral-100">Summarize & Chat</h3>
+                <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">Use AI to summarize and ask questions about your PDF documents.</p>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Merge PDFs</h5>
-                    <p class="card-text">Combine multiple PDF files into one.</p>
-                    <a href="/merge" class="btn btn-primary">Go to Merge</a>
-                </div>
+    </a>
+
+    <a href="/merge" class="group block rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-neutral-800/50 p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1">
+        <div class="flex items-start gap-4">
+            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 12h6"/><path d="M12 9v6"/></svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold font-serif text-neutral-900 dark:text-neutral-100">Merge PDFs</h3>
+                <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">Combine multiple PDF files into one.</p>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Compress PDF</h5>
-                    <p class="card-text">Reduce the file size of your PDF documents.</p>
-                    <a href="/compress" class="btn btn-primary">Go to Compress</a>
-                </div>
+    </a>
+
+    <a href="/compress" class="group block rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-neutral-800/50 p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1">
+        <div class="flex items-start gap-4">
+            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 18h1"/><path d="M14 18h1"/><path d="M9 15h1"/><path d="M14 15h1"/></svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold font-serif text-neutral-900 dark:text-neutral-100">Compress PDF</h3>
+                <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">Reduce the file size of your PDF documents.</p>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Split PDF</h5>
-                    <p class="card-text">Extract pages or split a PDF into multiple files.</p>
-                    <a href="/split" class="btn btn-primary">Go to Split</a>
-                </div>
+    </a>
+
+    <a href="/split" class="group block rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-neutral-800/50 p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1">
+        <div class="flex items-start gap-4">
+            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M3 12h6"/><path d="M5 10v4"/><path d="M9 10v4"/></svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold font-serif text-neutral-900 dark:text-neutral-100">Split PDF</h3>
+                <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">Extract pages or split a PDF into multiple files.</p>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">PDF to Word</h5>
-                    <p class="card-text">Convert a PDF file to a Word document.</p>
-                    <a href="/pdf-to-word" class="btn btn-primary">Go to PDF to Word</a>
-                </div>
+    </a>
+
+    <a href="/pdf-to-word" class="group block rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-neutral-800/50 p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1">
+        <div class="flex items-start gap-4">
+            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m15 15-3 3-3-3"/></svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold font-serif text-neutral-900 dark:text-neutral-100">PDF to Word</h3>
+                <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">Convert a PDF file to a Word document.</p>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Word to PDF</h5>
-                    <p class="card-text">Convert a Word document to a PDF file.</p>
-                    <a href="/word-to-pdf" class="btn btn-primary">Go to Word to PDF</a>
-                </div>
+    </a>
+
+    <a href="/word-to-pdf" class="group block rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-neutral-800/50 p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1">
+        <div class="flex items-start gap-4">
+            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 12v6"/><path d="m15 15-3-3-3 3"/></svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold font-serif text-neutral-900 dark:text-neutral-100">Word to PDF</h3>
+                <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-400">Convert a Word document to a PDF file.</p>
             </div>
         </div>
-    </div>
+    </a>
 </div>
 {% endblock %}

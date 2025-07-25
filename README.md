@@ -19,7 +19,7 @@ Smart PDF is a web application that provides a set of tools to manage your PDF a
 - **PDF and Word processing**: pypdf, pdf2docx, docx2pdf, pikepdf, pdfminer.six
 - **Asynchronous task queue**: Celery with Redis
 - **Templating**: Jinja2
-- **Frontend**: Bootstrap 5, JavaScript (fetch)
+- **Frontend**: Tailwind CSS, JavaScript (fetch)
 - **Containerisation**: Docker, Docker Compose
 - **CI/CD**: GitHub Actions
 
@@ -55,6 +55,26 @@ Smart PDF is a web application that provides a set of tools to manage your PDF a
 ```
 
 ## Setup and Usage
+
+### Frontend Development
+
+The frontend is built using Tailwind CSS. To work on the frontend, you need to have Node.js and npm installed.
+
+1.  **Install frontend dependencies**:
+    ```bash
+    npm install
+    ```
+
+2.  **Build the CSS**:
+    To build the CSS once, run:
+    ```bash
+    npm run build
+    ```
+
+    To watch for changes and automatically rebuild the CSS, run:
+    ```bash
+    npm run watch
+    ```
 
 ### Local Development (without Docker)
 

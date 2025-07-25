@@ -3,19 +3,32 @@
 {% block title %}Summarize and Chat with PDF{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="my-4 text-center">Summarize and Chat with PDF</h1>
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">Upload your PDF</h5>
-            <p class="card-text">Get a summary of your PDF and start a conversation about its content.</p>
-            <form id="upload-form" action="/summarize" method="post" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <input class="form-control" type="file" name="file" accept="application/pdf" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Upload and Summarize</button>
-            </form>
-        </div>
+<div class="max-w-2xl mx-auto">
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 sm:text-4xl font-serif">Summarize & Chat with PDF</h1>
+        <p class="mt-2 text-lg text-neutral-600 dark:text-neutral-400">Use AI to summarize and ask questions about your PDF documents.</p>
+    </div>
+
+    <div class="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 p-6 sm:p-8 shadow-sm">
+        <form id="upload-form" action="/summarize" method="post" enctype="multipart/form-data">
+            <div class="mb-6">
+                <label for="file" class="block mb-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">Upload your PDF</label>
+                <input type="file" id="file" name="file" accept="application/pdf" required class="block w-full text-sm text-neutral-500 dark:text-neutral-400
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-primary-50 dark:file:bg-primary-900/50 file:text-primary-700 dark:file:text-primary-300
+                    hover:file:bg-primary-100 dark:hover:file:bg-primary-900
+                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-neutral-900">
+            </div>
+
+            <div class="mt-6">
+                <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-neutral-900">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2"><path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m4 18 1.5-1.5.5.5L4.5 18.5.5 20l1.5-4Z"/><path d="m2.5 16.5.5.5L4.5 15H6v-1.5l-1.5-1.5-.5.5L2.5 14Z"/></svg>
+                    Upload and Summarize
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}

@@ -1,0 +1,27 @@
+{
+  "name": "smart-pdf",
+  "version": "1.0.0",
+  "description": "Smart PDF is a web application that provides a set of tools to manage your PDF and Word documents.",
+  "main": "index.js",
+  "scripts": {
+    "build": "tailwindcss -i ./static/css/input.css -o ./static/css/styles.css",
+    "watch": "tailwindcss -i ./static/css/input.css -o ./static/css/styles.css --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JoeUzo/Smart-PDF.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/JoeUzo/Smart-PDF/issues"
+  },
+  "homepage": "https://github.com/JoeUzo/Smart-PDF#readme",
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.1"
+  }
+}

@@ -3,14 +3,32 @@
 {% block title %}Compress Document - Smart PDF{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="my-4">Compress Document</h1>
-    <form action="/compress" method="post" enctype="multipart/form-data">
-        <div class="mb-3">
-            <label for="file" class="form-label">Select a PDF or Word file to compress</label>
-            <input type="file" class="form-control" id="file" name="file" accept=".pdf,.doc,.docx">
-        </div>
-        <button type="submit" class="btn btn-primary">Compress</button>
-    </form>
+<div class="max-w-2xl mx-auto">
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 sm:text-4xl font-serif">Compress Document</h1>
+        <p class="mt-2 text-lg text-neutral-600 dark:text-neutral-400">Reduce the file size of your PDF and Word documents.</p>
+    </div>
+
+    <div class="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 p-6 sm:p-8 shadow-sm">
+        <form action="/compress" method="post" enctype="multipart/form-data">
+            <div class="mb-6">
+                <label for="file" class="block mb-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">Select PDF or Word file</label>
+                <input type="file" id="file" name="file" accept=".pdf,.doc,.docx" class="block w-full text-sm text-neutral-500 dark:text-neutral-400
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-primary-50 dark:file:bg-primary-900/50 file:text-primary-700 dark:file:text-primary-300
+                    hover:file:bg-primary-100 dark:hover:file:bg-primary-900
+                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-neutral-900">
+            </div>
+
+            <div class="mt-6">
+                <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-neutral-900">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2"><path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 18h1"/><path d="M14 18h1"/><path d="M9 15h1"/><path d="M14 15h1"/></svg>
+                    Compress Document
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

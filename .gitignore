@@ -137,6 +137,12 @@ cython_debug/
 # VSCode
 .vscode/
 
+# Node.js
+node_modules/
+
+# Frontend
+/static/css/styles.css
+
 # Uploads
 uploads/
 tmp/

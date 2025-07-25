@@ -3,36 +3,36 @@
 {% block title %}Chat with PDF{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <h1 class="my-4 text-center">Chat with your PDF</h1>
-    <div class="row">
-        <!-- Left Column: Chat -->
-        <div class="col-md-6">
-            <div class="chat-container">
-                <div id="chat-box">
-                    <!-- Chat messages will be appended here -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-12rem)]">
+    <!-- Left Column: Chat -->
+    <div class="flex flex-col h-full">
+        <div id="chat-box" class="flex-grow overflow-y-auto p-4 space-y-4 bg-white dark:bg-neutral-800/50 rounded-lg border border-neutral-200 dark:border-neutral-800">
+            <!-- Chat messages will be appended here -->
+        </div>
+        <form id="chat-form" class="mt-4">
+            <div class="flex items-center gap-4">
+                <div class="w-1/3">
+                    <label for="model-select" class="block text-xs font-medium text-neutral-700 dark:text-neutral-300">Model</label>
+                    <select id="model-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+                        {% for model in openai_models %}
+                            <option value="{{ model }}" {% if model == 'gpt-3.5-turbo' %}selected{% endif %}>{{ model }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <form id="chat-form" class="mt-auto">
-                    <div class="mb-2" style="width: 25%;">
-                        <label for="model-select" class="form-label" style="font-size: 0.8rem;">Choose a model:</label>
-                        <select id="model-select" class="form-select form-select-sm">
-                            {% for model in openai_models %}
-                                <option value="{{ model }}" {% if model == 'gpt-3.5-turbo' %}selected{% endif %}>{{ model }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="input-group" style="gap: 8px;">
-                        <input type="text" id="message" class="form-control" placeholder="Type your message..." required>
-                        <button type="submit" class="btn btn-primary">Send</button>
-                    </div>
-                </form>
+                <div class="flex-grow">
+                    <label for="message" class="sr-only">Your message</label>
+                    <input type="text" id="message" class="block w-full px-4 py-2 text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-md shadow-sm placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="Type your message..." required>
+                </div>
+                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-neutral-900">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
             </div>
-        </div>
+        </form>
+    </div>
 
-        <!-- Right Column: PDF Preview -->
-        <div class="col-md-6">
-            <embed src="{{ pdf_url }}" type="application/pdf" width="100%" class="pdf-preview"/>
-        </div>
+    <!-- Right Column: PDF Preview -->
+    <div class="h-full">
+        <embed src="{{ pdf_url }}" type="application/pdf" width="100%" class="h-full rounded-lg border border-neutral-200 dark:border-neutral-800"/>
     </div>
 </div>
 
@@ -47,7 +47,6 @@
         const jobId = "{{ job_id }}";
         let chatHistory = [];
 
-        // Display the initial summary as the first message
         if (initialSummary) {
             appendMessage('Assistant', initialSummary, 'assistant');
             chatHistory.push({ "role": "assistant", "content": initialSummary });
@@ -96,16 +95,26 @@
 
         function appendMessage(sender, text, type) {
             const messageWrapper = document.createElement('div');
-            messageWrapper.classList.add('message-wrapper', type);
+            messageWrapper.classList.add('flex', 'items-start', 'gap-2.5', type === 'user' ? 'justify-end' : '');
 
             const messageElement = document.createElement('div');
-            messageElement.classList.add('message', type + '-message');
+            messageElement.classList.add('flex', 'flex-col', 'w-full', 'max-w-[320px]', 'leading-1.5', 'p-4', 'border-neutral-200', 'dark:border-neutral-700');
             
-            const senderElement = document.createElement('div');
-            senderElement.classList.add('message-sender');
-            senderElement.textContent = sender;
+            if (type === 'user') {
+                messageElement.classList.add('bg-primary-500', 'dark:bg-primary-600', 'rounded-s-xl', 'rounded-ee-xl');
+            } else {
+                messageElement.classList.add('bg-neutral-100', 'dark:bg-neutral-700', 'rounded-e-xl', 'rounded-es-xl');
+            }
 
-            const textElement = document.createElement('div');
+            const senderElement = document.createElement('div');
+            senderElement.classList.add('flex', 'items-center', 'space-x-2', 'rtl:space-x-reverse');
+            const senderName = document.createElement('span');
+            senderName.classList.add('text-sm', 'font-semibold', type === 'user' ? 'text-white' : 'text-neutral-900', 'dark:text-white');
+            senderName.textContent = sender;
+            senderElement.appendChild(senderName);
+
+            const textElement = document.createElement('p');
+            textElement.classList.add('text-sm', 'font-normal', 'py-2.5', type === 'user' ? 'text-white' : 'text-neutral-900', 'dark:text-white');
             textElement.textContent = text;
 
             messageElement.appendChild(senderElement);
