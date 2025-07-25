@@ -1,25 +1,46 @@
-# Use an official Python runtime as a parent image
-FROM python:3.12-slim
+# =====================
+# Stage 1: Builder
+# =====================
+FROM python:3.12-slim AS builder
 
-# Prevent Python from writing .pyc files and enable stdout/stderr buffering
+# prevent .pyc files, enable stdout/stderr buffering
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Set the working directory
 WORKDIR /app
 
-# Copy dependency files first for better caching
-COPY setup.py /app/
-COPY requirements.txt /app/
+# install build tools and ghostscript
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ghostscript \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# copy and install Python deps into a venv
+COPY requirements.txt setup.py /app/
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --upgrade pip \
+    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
+# =====================
+# Stage 2: Runtime
+# =====================
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /app
+
+# install ghostscript for PDF compression
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ghostscript \
+    && rm -rf /var/lib/apt/lists/*
+
+# copy venv and app code
+COPY --from=builder /opt/venv /opt/venv
 COPY . /app
 
-# Expose port
 EXPOSE 80
 
-# Run the Uvicorn server
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
