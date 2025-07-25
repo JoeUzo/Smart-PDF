@@ -80,7 +80,7 @@ The frontend is built using Tailwind CSS. To work on the frontend, you need to h
 
 1.  **Clone the repository**:
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/JoeUzo/Smart-PDF
     cd smart-pdf
     ```
 
