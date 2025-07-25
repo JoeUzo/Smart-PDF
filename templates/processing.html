@@ -3,11 +3,10 @@
 {% block title %}Processing...{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto text-center">
-    <h1 class="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 sm:text-4xl font-serif">Processing your request...</h1>
-    
-    <div id="progress-container" class="mt-8">
-        <div class="flex justify-center items-center">
+<div class="max-w-4xl mx-auto text-center">
+    <div id="progress-container">
+        <h1 class="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 sm:text-4xl font-serif">Processing your request...</h1>
+        <div class="flex justify-center items-center mt-8">
             <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -16,23 +15,28 @@
         <div id="status" class="mt-4 text-lg text-neutral-600 dark:text-neutral-400">Please wait, this may take a moment.</div>
     </div>
 
-    <div id="result-container" class="mt-6"></div>
+    <div id="result-container" class="mt-8" style="display: none;">
+        <h1 class="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 sm:text-4xl font-serif mb-4">Your File is Ready!</h1>
+        <div id="preview-area" class="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 shadow-sm" style="height: 70vh;"></div>
+        <div id="download-area" class="mt-6"></div>
+    </div>
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const statusDiv = document.getElementById('status');
-        const resultContainer = document.getElementById('result-container');
         const progressContainer = document.getElementById('progress-container');
+        const resultContainer = document.getElementById('result-container');
+        const previewArea = document.getElementById('preview-area');
+        const downloadArea = document.getElementById('download-area');
         const taskId = "{{ task_id }}";
         const redirectUrl = "{{ redirect_url or '' }}";
 
         const pollStatus = setInterval(async () => {
             try {
                 const response = await fetch(`/status/${taskId}`);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
+                if (!response.ok) throw new Error('Network response was not ok');
+                
                 const data = await response.json();
 
                 if (data.state && data.state.toLowerCase() !== 'pending' && data.state.toLowerCase() !== 'started') {
@@ -42,41 +46,51 @@
                 if (data.state === 'SUCCESS') {
                     clearInterval(pollStatus);
                     progressContainer.style.display = 'none';
-                    statusDiv.textContent = 'Processing complete!';
+                    resultContainer.style.display = 'block';
 
-                    // If a redirect URL is provided (for summarize), redirect there.
                     if (redirectUrl) {
                         window.location.href = redirectUrl;
                         return;
                     }
                     
-                    // For other tasks, the result is the relative path to the file.
                     const relativePath = data.result;
-                    if (typeof relativePath !== 'string') {
-                        throw new Error('Invalid result format from server.');
+                    if (typeof relativePath !== 'string') throw new Error('Invalid result format');
+
+                    const fileUrl = `/uploads/${relativePath}`;
+                    const downloadUrl = `/download/${relativePath}`;
+                    const filename = relativePath.split('/')[1];
+
+                    // Create preview
+                    if (filename.toLowerCase().endsWith('.pdf')) {
+                        const iframe = document.createElement('iframe');
+                        iframe.src = fileUrl;
+                        iframe.className = 'w-full h-full rounded-lg';
+                        previewArea.appendChild(iframe);
+                    } else {
+                        previewArea.innerHTML = `
+                            <div class="flex items-center justify-center h-full p-6 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl">
+                                <div class="text-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto h-12 w-12 text-neutral-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                                    <h3 class="mt-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">Preview not available</h3>
+                                </div>
+                            </div>`;
                     }
 
-                    const parts = relativePath.split('/');
-                    const task_id_from_path = parts[0];
-                    const filename = parts[1];
-
-                    const previewUrl = `/preview/${task_id_from_path}/${filename}`;
-                    
-                    // Create a preview iframe
-                    const iframe = document.createElement('iframe');
-                    iframe.src = previewUrl;
-                    iframe.classList.add('w-full', 'h-96', 'rounded-lg', 'border', 'border-neutral-200', 'dark:border-neutral-800', 'mb-4');
-                    resultContainer.appendChild(iframe);
+                    // Create download button
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = downloadUrl;
+                    downloadLink.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download ${filename}`;
+                    const buttonClasses = ['inline-flex', 'items-center', 'justify-center', 'px-6', 'py-3', 'border', 'border-transparent', 'text-base', 'font-medium', 'rounded-md', 'shadow-sm', 'text-white', 'bg-primary-600', 'hover:bg-primary-700', 'focus:outline-none', 'focus:ring-2', 'focus:ring-offset-2', 'focus:ring-primary-500', 'dark:focus:ring-offset-neutral-900'];
+                    downloadLink.classList.add(...buttonClasses);
+                    downloadArea.appendChild(downloadLink);
 
                 } else if (data.state === 'FAILURE') {
                     clearInterval(pollStatus);
-                    progressContainer.innerHTML = ''; // Clear spinner
-                    statusDiv.textContent = 'Processing failed. Please try again.';
-                    statusDiv.classList.add('text-red-600', 'dark:text-red-500');
+                    progressContainer.innerHTML = '<p class="text-red-600 dark:text-red-500">Processing failed. Please try again.</p>';
                 }
             } catch (error) {
                 console.error('Error polling status:', error);
-                statusDiv.textContent = 'Error checking status.';
+                progressContainer.innerHTML = '<p class="text-red-600 dark:text-red-500">Error checking status. Please refresh and try again.</p>';
                 clearInterval(pollStatus);
             }
         }, 2000);

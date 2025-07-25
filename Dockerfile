@@ -1,5 +1,24 @@
 # =====================
-# Stage 1: Builder
+# Stage 1: Frontend Builder
+# =====================
+FROM node:20-slim AS frontend
+
+WORKDIR /app
+
+# Copy package files and install dependencies
+COPY package.json package-lock.json ./
+RUN npm install
+
+# Copy all frontend-related files
+COPY tailwind.config.js postcss.config.js ./
+COPY static/css/input.css ./static/css/input.css
+COPY templates/ ./templates/
+
+# Build the production CSS
+RUN npm run build
+
+# =====================
+# Stage 2: Python Builder
 # =====================
 FROM python:3.12-slim AS builder
 
@@ -22,7 +41,7 @@ RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
 # =====================
-# Stage 2: Runtime
+# Stage 3: Runtime
 # =====================
 FROM python:3.12-slim
 
@@ -37,9 +56,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ghostscript \
     && rm -rf /var/lib/apt/lists/*
 
-# copy venv and app code
+# Copy virtual environment from the python builder stage
 COPY --from=builder /opt/venv /opt/venv
+
+# Copy the rest of the application code
 COPY . /app
+
+# Overwrite the static CSS with the built version from the frontend stage
+COPY --from=frontend /app/static/css/styles.css /app/static/css/styles.css
 
 EXPOSE 80
 
