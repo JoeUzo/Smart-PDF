@@ -95,27 +95,24 @@
 
         function appendMessage(sender, text, type) {
             const messageWrapper = document.createElement('div');
-            messageWrapper.classList.add('flex', 'items-start', 'gap-2.5', type === 'user' ? 'justify-end' : '');
+            messageWrapper.classList.add('flex', 'flex-col', type === 'user' ? 'items-end' : 'items-start');
 
             const messageElement = document.createElement('div');
-            messageElement.classList.add('flex', 'flex-col', 'w-full', 'max-w-[320px]', 'leading-1.5', 'p-4', 'border-neutral-200', 'dark:border-neutral-700');
+            messageElement.classList.add('max-w-md', 'p-3', 'rounded-lg', 'border');
             
             if (type === 'user') {
-                messageElement.classList.add('bg-primary-500', 'dark:bg-primary-600', 'rounded-s-xl', 'rounded-ee-xl');
+                messageElement.classList.add('bg-primary-600', 'text-white', 'border-primary-700', 'rounded-br-none');
             } else {
-                messageElement.classList.add('bg-neutral-100', 'dark:bg-neutral-700', 'rounded-e-xl', 'rounded-es-xl');
+                messageElement.classList.add('bg-neutral-100', 'dark:bg-neutral-700', 'text-neutral-900', 'dark:text-white', 'border-neutral-200', 'dark:border-neutral-600', 'rounded-bl-none');
             }
 
             const senderElement = document.createElement('div');
-            senderElement.classList.add('flex', 'items-center', 'space-x-2', 'rtl:space-x-reverse');
-            const senderName = document.createElement('span');
-            senderName.classList.add('text-sm', 'font-semibold', type === 'user' ? 'text-white' : 'text-neutral-900', 'dark:text-white');
-            senderName.textContent = sender;
-            senderElement.appendChild(senderName);
+            senderElement.classList.add('text-sm', 'font-semibold');
+            senderElement.textContent = sender;
 
             const textElement = document.createElement('p');
-            textElement.classList.add('text-sm', 'font-normal', 'py-2.5', type === 'user' ? 'text-white' : 'text-neutral-900', 'dark:text-white');
-            textElement.textContent = text;
+            textElement.classList.add('text-sm', 'mt-1');
+            textElement.innerHTML = text.replace(/\n/g, '<br>');
 
             messageElement.appendChild(senderElement);
             messageElement.appendChild(textElement);

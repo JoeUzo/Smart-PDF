@@ -1,55 +1,85 @@
 {% extends "base.html" %}
 
-{% block title %}Processing... - Smart PDF{% endblock %}
+{% block title %}Processing...{% endblock %}
 
 {% block content %}
-<div class="container text-center">
-    <h1 class="my-4">Your file is being processed...</h1>
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">Loading...</span>
+<div class="max-w-2xl mx-auto text-center">
+    <h1 class="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 sm:text-4xl font-serif">Processing your request...</h1>
+    
+    <div id="progress-container" class="mt-8">
+        <div class="flex justify-center items-center">
+            <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        </div>
+        <div id="status" class="mt-4 text-lg text-neutral-600 dark:text-neutral-400">Please wait, this may take a moment.</div>
     </div>
-    <p class="lead mt-3">Please wait, this may take a moment.</p>
-    <div id="error-container" class="alert alert-danger mt-3" style="display: none;" role="alert"></div>
+
+    <div id="result-container" class="mt-6"></div>
 </div>
 
 <script>
-    const taskId = "{{ task_id }}";
-    const redirectUrlTemplate = "{{ redirect_url }}"; // e.g., /chat_page/{task_id}
-    const interval = setInterval(() => {
-        fetch(`/status/${taskId}`)
-            .then(response => {
+    document.addEventListener("DOMContentLoaded", function() {
+        const statusDiv = document.getElementById('status');
+        const resultContainer = document.getElementById('result-container');
+        const progressContainer = document.getElementById('progress-container');
+        const taskId = "{{ task_id }}";
+        const redirectUrl = "{{ redirect_url or '' }}";
+
+        const pollStatus = setInterval(async () => {
+            try {
+                const response = await fetch(`/status/${taskId}`);
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
-                return response.json();
-            })
-            .then(data => {
-                if (data.state === 'SUCCESS') {
-                    clearInterval(interval);
-                    if (redirectUrlTemplate) {
-                        // For the chat feature, the redirect URL is already correct
-                        window.location.href = redirectUrlTemplate;
-                    } else {
-                        // For other tasks, the result is a path like "task_id/filename.pdf"
-                        const pathParts = data.result.split('/');
-                        const resultTaskId = pathParts[0];
-                        const resultFilename = pathParts[1];
-                        window.location.href = `/preview/${resultTaskId}/${resultFilename}`;
-                    }
-                } else if (data.state === 'FAILURE') {
-                    clearInterval(interval);
-                    const errorContainer = document.getElementById('error-container');
-                    errorContainer.textContent = `An error occurred during processing. Please try again.`;
-                    errorContainer.style.display = 'block';
+                const data = await response.json();
+
+                if (data.state && data.state.toLowerCase() !== 'pending' && data.state.toLowerCase() !== 'started') {
+                    statusDiv.textContent = `Status: ${data.state}`;
                 }
-            })
-            .catch(error => {
-                clearInterval(interval);
-                console.error('Error fetching task status:', error);
-                const errorContainer = document.getElementById('error-container');
-                errorContainer.textContent = 'Could not retrieve processing status. Please check your connection and try again.';
-                errorContainer.style.display = 'block';
-            });
-    }, 3000);
+
+                if (data.state === 'SUCCESS') {
+                    clearInterval(pollStatus);
+                    progressContainer.style.display = 'none';
+                    statusDiv.textContent = 'Processing complete!';
+
+                    // If a redirect URL is provided (for summarize), redirect there.
+                    if (redirectUrl) {
+                        window.location.href = redirectUrl;
+                        return;
+                    }
+                    
+                    // For other tasks, the result is the relative path to the file.
+                    const relativePath = data.result;
+                    if (typeof relativePath !== 'string') {
+                        throw new Error('Invalid result format from server.');
+                    }
+
+                    const parts = relativePath.split('/');
+                    const task_id_from_path = parts[0];
+                    const filename = parts[1];
+
+                    const previewUrl = `/preview/${task_id_from_path}/${filename}`;
+                    
+                    // Create a preview iframe
+                    const iframe = document.createElement('iframe');
+                    iframe.src = previewUrl;
+                    iframe.classList.add('w-full', 'h-96', 'rounded-lg', 'border', 'border-neutral-200', 'dark:border-neutral-800', 'mb-4');
+                    resultContainer.appendChild(iframe);
+
+                } else if (data.state === 'FAILURE') {
+                    clearInterval(pollStatus);
+                    progressContainer.innerHTML = ''; // Clear spinner
+                    statusDiv.textContent = 'Processing failed. Please try again.';
+                    statusDiv.classList.add('text-red-600', 'dark:text-red-500');
+                }
+            } catch (error) {
+                console.error('Error polling status:', error);
+                statusDiv.textContent = 'Error checking status.';
+                clearInterval(pollStatus);
+            }
+        }, 2000);
+    });
 </script>
 {% endblock %}

@@ -3,30 +3,41 @@
 {% block title %}Preview - Smart PDF{% endblock %}
 
 {% block content %}
-<div class="container text-center">
-    <h1 class="my-4">Your File is Ready!</h1>
-    <p class="lead">Preview your processed file below or download it directly.</p>
+<div class="max-w-4xl mx-auto">
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 sm:text-4xl font-serif">Your File is Ready!</h1>
+        <p class="mt-2 text-lg text-neutral-600 dark:text-neutral-400">Preview your processed file below or download it directly.</p>
+    </div>
 
-    <div class="card my-4">
-        <div class="card-header">
-            File Preview: {{ filename }}
+    <div class="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/50 shadow-sm">
+        <div class="p-4 border-b border-neutral-200 dark:border-neutral-800">
+            <h3 class="text-lg font-medium text-neutral-900 dark:text-neutral-100">{{ filename }}</h3>
         </div>
-        <div class="card-body" style="height: 60vh;">
-            <!-- Embed PDF for preview, or show a message for other types -->
+        <div class="p-4" style="height: 70vh;">
             {% if filename.lower().endswith('.pdf') %}
                 <object data="{{ file_path }}" type="application/pdf" width="100%" height="100%">
-                    <p>Your browser does not support PDFs. <a href="{{ download_url }}">Download the PDF</a>.</p>
+                    <div class="p-4 text-center text-neutral-600 dark:text-neutral-400">
+                        <p>Your browser does not support embedded PDFs.</p>
+                        <a href="{{ download_url }}" class="text-primary-600 hover:underline dark:text-primary-400">Click here to download the PDF instead.</a>
+                    </div>
                 </object>
             {% else %}
-                <div class="alert alert-info" role="alert">
-                    Preview is not available for this file type. Please download the file to view it.
+                <div class="flex items-center justify-center h-full p-6 bg-neutral-50 dark:bg-neutral-800/50 rounded-b-xl">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto h-12 w-12 text-neutral-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                        <h3 class="mt-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">Preview not available</h3>
+                        <p class="mt-1 text-sm text-neutral-500 dark:text-neutral-400">Preview is not available for this file type.</p>
+                    </div>
                 </div>
             {% endif %}
         </div>
     </div>
 
-    <a href="{{ download_url }}" class="btn btn-primary btn-lg">
-        <i class="fas fa-download"></i> Download {{ filename }}
-    </a>
+    <div class="mt-6 text-center">
+        <a href="{{ download_url }}" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-neutral-900">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download {{ filename }}
+        </a>
+    </div>
 </div>
 {% endblock %}
