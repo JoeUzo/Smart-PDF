@@ -46,6 +46,7 @@ class ChatRequest(BaseModel):
     job_id: str
     message: str
     history: List[dict]
+    model: str
 
 # --- Helper Functions ---
 def create_task_directory() -> Path:
@@ -86,7 +87,7 @@ async def summarize_endpoint(request: Request, file: UploadFile = File(...)):
     task_dir = create_task_directory()
     try:
         saved_path = await save_upload_file(file, task_dir)
-        task = summarize_pdf_task.delay(str(saved_path))
+        task = summarize_pdf_task.delay(str(saved_path), settings.openai_models[0])
         return templates.TemplateResponse("processing.html", {"request": request, "task_id": task.id, "redirect_url": f"/chat_page/{task.id}"})
     except HTTPException as e:
         cleanup_directory(task_dir)
@@ -111,7 +112,8 @@ async def chat_page(request: Request, task_id: str):
         "request": request,
         "job_id": job_id,
         "summary": result.get("summary"),
-        "pdf_url": pdf_url
+        "pdf_url": pdf_url,
+        "openai_models": settings.openai_models
     })
 
 @app.post("/chat", response_class=JSONResponse)
@@ -131,7 +133,7 @@ async def chat_endpoint(chat_request: ChatRequest):
 
     try:
         response = openai.chat.completions.create(
-            model=settings.openai_model,
+            model=chat_request.model,
             messages=messages,
             max_tokens=500
         )
@@ -141,7 +143,9 @@ async def chat_endpoint(chat_request: ChatRequest):
         
         return {"reply": reply, "history": updated_history}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get response from OpenAI: {e}")
+        # Use repr(e) to get a developer-friendly, safe representation of the exception.
+        error_detail = f"Failed to get response from OpenAI: {repr(e)}"
+        raise HTTPException(status_code=500, detail=error_detail)
 
 
 # --- Existing PDF/Word Processing Endpoints ---

@@ -39,7 +39,7 @@ def cleanup_directory(dir_path: Path):
 # --- Celery Tasks ---
 
 @celery_app.task(bind=True)
-def summarize_pdf_task(self, file_path: str):
+def summarize_pdf_task(self, file_path: str, model: str):
     file_path = Path(file_path)
     try:
         # 1. Extract text from PDF
@@ -59,7 +59,7 @@ def summarize_pdf_task(self, file_path: str):
 
         # 4. Call OpenAI for a concise overview
         response = openai.chat.completions.create(
-            model=settings.openai_model,
+            model=model,
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that summarizes documents."},
                 {"role": "user", "content": f"Please provide a concise summary of the following document:\n\n{summary_prompt_text}"}
@@ -77,6 +77,7 @@ def summarize_pdf_task(self, file_path: str):
         logger.error(f"Error in summarize_pdf_task for {file_path.name}: {e}", exc_info=True)
         cleanup_directory(file_path.parent)
         raise
+
 
 
 @celery_app.task(bind=True)
