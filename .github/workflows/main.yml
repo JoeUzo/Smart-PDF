@@ -28,6 +28,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
+      - name: Set SHORT_SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -36,4 +39,4 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/smart-pdf:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/smart-pdf:$(echo ${{ github.sha }} | cut -c1-7)
+            ${{ secrets.DOCKERHUB_USERNAME }}/smart-pdf:${{ env.SHORT_SHA }}

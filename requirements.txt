@@ -14,3 +14,5 @@ gunicorn
 Pillow
 python-dotenv
 openai
+pydantic
+pydantic-settings
