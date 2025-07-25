@@ -3,24 +3,27 @@ import shutil
 import zipfile
 import logging
 from pathlib import Path
+import openai
 from celery import Celery
 from dotenv import load_dotenv
 from PIL import Image
 import pikepdf
-from pypdf import PdfWriter, PdfReader
+from pypdf import PdfReader, PdfWriter
 from pdf2docx import Converter
 from docx2pdf import convert as docx_to_pdf_convert
+from config import settings
 
 load_dotenv()
 
 # --- Celery Configuration ---
 celery_app = Celery(
     "tasks",
-    broker=os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0"),
-    backend=os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+    broker=settings.celery_broker_url,
+    backend=settings.celery_result_backend
 )
 
 logger = logging.getLogger(__name__)
+openai.api_key = settings.openai_api_key
 
 # --- Helper Functions ---
 
@@ -28,7 +31,49 @@ def get_relative_path(full_path: Path) -> str:
     """Returns the path relative to the 'uploads' directory as a POSIX path."""
     return full_path.relative_to(full_path.parent.parent).as_posix()
 
+def cleanup_directory(dir_path: Path):
+    """Shared cleanup utility."""
+    if dir_path.exists() and dir_path.is_dir():
+        shutil.rmtree(dir_path)
+
 # --- Celery Tasks ---
+
+@celery_app.task(bind=True)
+def summarize_pdf_task(self, file_path: str):
+    file_path = Path(file_path)
+    try:
+        # 1. Extract text from PDF
+        reader = PdfReader(file_path)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text()
+
+        # 2. Store full text for chat context
+        context_path = file_path.parent / "context.txt"
+        context_path.write_text(text,  encoding="utf-8")
+
+        # 3. Chunk text for summary
+        # A simple way to chunk is to take the beginning of the text.
+        # A more advanced approach would be to use token-aware chunking.
+        summary_prompt_text = text[:4000] # Limit to approx. 1000 tokens for the prompt
+
+        # 4. Call OpenAI for a concise overview
+        response = openai.chat.completions.create(
+            model=settings.openai_model,
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that summarizes documents."},
+                {"role": "user", "content": f"Please provide a concise summary of the following document:\n\n{summary_prompt_text}"}
+            ],
+            max_tokens=150
+        )
+        summary = response.choices[0].message.content
+
+        return {"summary": summary, "job_id": file_path.parent.name}
+    except Exception as e:
+        logger.error(f"Error in summarize_pdf_task for {file_path.name}: {e}", exc_info=True)
+        cleanup_directory(file_path.parent)
+        raise
+
 
 @celery_app.task(bind=True)
 def merge_pdfs_task(self, file_paths: list[str], output_path: str):
@@ -141,8 +186,3 @@ def compress_pdf_task(self, file_path: str, output_path: str):
         logger.error(f"Error compressing PDF for task {self.request.id}: {e}", exc_info=True)
         cleanup_directory(file_path.parent)
         raise
-
-def cleanup_directory(dir_path: Path):
-    """Shared cleanup utility."""
-    if dir_path.exists() and dir_path.is_dir():
-        shutil.rmtree(dir_path)

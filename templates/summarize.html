@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Summarize and Chat with PDF{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4 text-center">Summarize and Chat with PDF</h1>
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Upload your PDF</h5>
+            <p class="card-text">Get a summary of your PDF and start a conversation about its content.</p>
+            <form id="upload-form" action="/summarize" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <input class="form-control" type="file" name="file" accept="application/pdf" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Upload and Summarize</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
