@@ -103,10 +103,15 @@ async def chat_page(request: Request, task_id: str):
         return templates.TemplateResponse("processing.html", {"request": request, "task_id": task.id, "redirect_url": f"/chat_page/{task.id}"})
 
     result = task.result
+    job_id = result.get("job_id")
+    filename = result.get("filename")
+    pdf_url = f"/uploads/{job_id}/{filename}"
+
     return templates.TemplateResponse("chat.html", {
         "request": request,
-        "job_id": result.get("job_id"),
-        "summary": result.get("summary")
+        "job_id": job_id,
+        "summary": result.get("summary"),
+        "pdf_url": pdf_url
     })
 
 @app.post("/chat", response_class=JSONResponse)

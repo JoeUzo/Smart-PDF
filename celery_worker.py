@@ -68,7 +68,11 @@ def summarize_pdf_task(self, file_path: str):
         )
         summary = response.choices[0].message.content
 
-        return {"summary": summary, "job_id": file_path.parent.name}
+        return {
+            "summary": summary,
+            "job_id": file_path.parent.name,
+            "filename": file_path.name
+        }
     except Exception as e:
         logger.error(f"Error in summarize_pdf_task for {file_path.name}: {e}", exc_info=True)
         cleanup_directory(file_path.parent)
