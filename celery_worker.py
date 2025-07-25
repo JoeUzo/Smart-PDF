@@ -12,6 +12,8 @@ from pypdf import PdfReader, PdfWriter
 from pdf2docx import Converter
 from docx2pdf import convert as docx_to_pdf_convert
 from config import settings
+import subprocess
+import platform
 
 load_dotenv()
 
@@ -182,12 +184,54 @@ def word_to_pdf_task(self, file_path: str, output_path: str):
 def compress_pdf_task(self, file_path: str, output_path: str):
     file_path = Path(file_path)
     output_path = Path(output_path)
+
     try:
+        # Step 1: Compress using pikepdf
         with pikepdf.open(file_path) as pdf:
-            pdf.save(output_path, compress_streams=True, recompress_flate=True)
-        file_path.unlink()
+            pdf.save(
+                output_path,
+                compress_streams=True,
+                object_stream_mode=pikepdf.ObjectStreamMode.generate,
+                linearize=True
+            )
+
+        # Step 2: Check if size reduction happened
+        original_size = file_path.stat().st_size
+        compressed_size = output_path.stat().st_size
+
+        logger.info(f"Original PDF size: {original_size / 1024:.2f} KB")
+        logger.info(f"Compressed PDF size: {compressed_size / 1024:.2f} KB")
+
+        if compressed_size >= original_size:
+            logger.info("PikePDF compression not effective, trying Ghostscript...")
+            ghostscript_compress(file_path, output_path)
+
+        file_path.unlink(missing_ok=True)
         return get_relative_path(output_path)
+
     except Exception as e:
         logger.error(f"Error compressing PDF for task {self.request.id}: {e}", exc_info=True)
         cleanup_directory(file_path.parent)
         raise
+
+def ghostscript_compress(input_path: Path, output_path: Path):
+    if platform.system() == "Windows":
+        return
+    else:
+        gs_executable = shutil.which("gs")  # Linux/Mac/Docker
+
+    if not gs_executable:
+        raise FileNotFoundError("Ghostscript executable not found. Install it or update PATH.")
+
+    gs_command = [
+        gs_executable,
+        "-sDEVICE=pdfwrite",
+        "-dCompatibilityLevel=1.4",
+        "-dPDFSETTINGS=/screen",
+        "-dNOPAUSE",
+        "-dQUIET",
+        "-dBATCH",
+        f"-sOutputFile={output_path}",
+        str(input_path)
+    ]
+    subprocess.run(gs_command, check=True)
