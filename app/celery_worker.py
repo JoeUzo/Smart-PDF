@@ -40,7 +40,12 @@ def cleanup_directory(dir_path: Path):
 
 # --- Celery Tasks ---
 
-@celery_app.task(bind=True)
+@celery_app.task(
+    bind=True,
+    autoretry_for=(openai.OpenAIError,),
+    retry_backoff=True,
+    max_retries=3
+)
 def summarize_pdf_task(self, file_path: str, model: str):
     file_path = Path(file_path)
     try:
@@ -48,16 +53,19 @@ def summarize_pdf_task(self, file_path: str, model: str):
         reader = PdfReader(file_path)
         text = ""
         for page in reader.pages:
-            text += page.extract_text()
+            extracted_text = page.extract_text()
+            if extracted_text:
+                text += extracted_text
+
+        if not text:
+            raise ValueError("Could not extract text from the PDF.")
 
         # 2. Store full text for chat context
         context_path = file_path.parent / "context.txt"
-        context_path.write_text(text,  encoding="utf-8")
+        context_path.write_text(text, encoding="utf-8")
 
         # 3. Chunk text for summary
-        # A simple way to chunk is to take the beginning of the text.
-        # A more advanced approach would be to use token-aware chunking.
-        summary_prompt_text = text[:4000] # Limit to approx. 1000 tokens for the prompt
+        summary_prompt_text = text[:4000]
 
         # 4. Call OpenAI for a concise overview
         response = openai.chat.completions.create(
@@ -76,9 +84,14 @@ def summarize_pdf_task(self, file_path: str, model: str):
             "filename": file_path.name
         }
     except Exception as e:
-        logger.error(f"Error in summarize_pdf_task for {file_path.name}: {e}", exc_info=True)
+        logger.error(
+            f"Error in summarize_pdf_task for job {self.request.id} "
+            f"with file {file_path.name} (size: {file_path.stat().st_size} bytes): {e}",
+            exc_info=True
+        )
         cleanup_directory(file_path.parent)
         raise
+
 
 
 

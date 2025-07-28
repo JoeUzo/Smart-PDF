@@ -2,6 +2,7 @@ import uuid
 from pathlib import Path
 from typing import List
 import openai
+import aiofiles
 from celery.result import AsyncResult
 from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
@@ -47,6 +48,10 @@ class ChatRequest(BaseModel):
     message: str
     history: List[dict]
     model: str
+
+class ChatResponse(BaseModel):
+    reply: str
+    history: List[dict]
 
 # --- Helper Functions ---
 def create_task_directory() -> Path:
@@ -116,13 +121,14 @@ async def chat_page(request: Request, task_id: str):
         "openai_models": settings.openai_models
     })
 
-@app.post("/chat", response_class=JSONResponse)
+@app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(chat_request: ChatRequest):
     context_path = UPLOAD_DIR / chat_request.job_id / "context.txt"
     if not context_path.exists():
         raise HTTPException(status_code=404, detail="Chat context not found.")
     
-    pdf_text = context_path.read_text(encoding="utf-8")
+    async with aiofiles.open(context_path, "r", encoding="utf-8") as f:
+        pdf_text = await f.read()
     
     messages = [
         {"role": "system", "content": "You are a helpful assistant. The user has provided a PDF document. Your task is to answer questions based on its content."},
@@ -141,11 +147,13 @@ async def chat_endpoint(chat_request: ChatRequest):
         
         updated_history = chat_request.history + [{"role": "user", "content": chat_request.message}, {"role": "assistant", "content": reply}]
         
-        return {"reply": reply, "history": updated_history}
+        return ChatResponse(reply=reply, history=updated_history)
+    except openai.OpenAIError as e:
+        raise HTTPException(status_code=500, detail="An error occurred with the AI service.")
     except Exception as e:
-        # Use repr(e) to get a developer-friendly, safe representation of the exception.
-        error_detail = f"Failed to get response from OpenAI: {repr(e)}"
-        raise HTTPException(status_code=500, detail=error_detail)
+        # For other unexpected errors, log them and return a generic message
+        # logger.error(f"An unexpected error occurred: {e}")
+        raise HTTPException(status_code=500, detail="An unexpected error occurred.")
 
 
 # --- Existing PDF/Word Processing Endpoints ---
