@@ -1,5 +1,6 @@
 import uuid
 import logging
+from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from typing import List, AsyncGenerator
 
@@ -26,7 +27,39 @@ from app.config import settings
 
 # --- App and Logging Setup ---
 app = FastAPI()
-logging.basicConfig(level=logging.INFO)
+
+# --- Configuration and Setup ---
+BASE_DIR = Path(__file__).resolve().parent.parent
+UPLOAD_DIR = BASE_DIR / "uploads"
+STATIC_DIR = BASE_DIR / "static"
+LOG_DIR = BASE_DIR / settings.log_dir
+
+# Create directories if they don't exist
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+# --- Logging Setup ---
+log_formatter = logging.Formatter(
+    "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+)
+# Use a rotating file handler
+log_file = LOG_DIR / "app.log"
+file_handler = TimedRotatingFileHandler(
+    log_file, when="midnight", interval=1, backupCount=30, encoding="utf-8"
+)
+file_handler.setFormatter(log_formatter)
+file_handler.setLevel(logging.INFO)
+
+# Get the root logger and add the file handler
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.addHandler(file_handler)
+
+# Also, keep logging to the console
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(log_formatter)
+root_logger.addHandler(stream_handler)
+
 logger = logging.getLogger(__name__)
 
 # --- Middleware ---
@@ -37,13 +70,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# --- Configuration and Setup ---
-BASE_DIR = Path(__file__).resolve().parent.parent
-UPLOAD_DIR = BASE_DIR / "uploads"
-STATIC_DIR = BASE_DIR / "static"
-
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
