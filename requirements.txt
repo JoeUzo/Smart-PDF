@@ -16,3 +16,8 @@ python-dotenv
 openai
 pydantic
 pydantic-settings
+faiss-cpu
+langchain
+langchain_community
+langchain_openai
+tiktoken

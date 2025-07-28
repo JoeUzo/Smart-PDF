@@ -61,57 +61,62 @@
 
             appendMessage('You', message, 'user');
             messageInput.value = '';
-
             chatHistory.push({ "role": "user", "content": message });
+
             const modelSelect = document.getElementById('model-select');
             const selectedModel = modelSelect.value;
 
-            try {
-                const response = await fetch('/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        job_id: jobId,
-                        message: message,
-                        history: chatHistory.slice(0, -1),
-                        model: selectedModel
-                    })
-                });
+            // Create a placeholder for the assistant's response
+            const assistantMessageElement = appendMessage('Assistant', '', 'assistant');
+            const textElement = assistantMessageElement.querySelector('p');
+            let assistantReply = '';
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Failed to get response from server.');
+            const eventSource = new EventSource(`/chat?job_id=${jobId}&message=${encodeURIComponent(message)}&model=${selectedModel}&history=${encodeURIComponent(JSON.stringify(chatHistory.slice(0, -1)))}`);
+
+            eventSource.onmessage = function(event) {
+                if (event.data === '[DONE]') {
+                    chatHistory.push({ "role": "assistant", "content": assistantReply });
+                    eventSource.close();
+                    return;
                 }
+                if (event.data.startsWith('[ERROR]')) {
+                    const errorMsg = event.data.replace('[ERROR] ', '');
+                    textElement.textContent = errorMsg;
+                    eventSource.close();
+                    return;
+                }
+                const chunk = event.data;
+                assistantReply += chunk;
+                textElement.innerHTML = assistantReply.replace(/\n/g, '<br>');
+                chatBox.scrollTop = chatBox.scrollHeight;
+            };
 
-                const data = await response.json();
-                appendMessage('Assistant', data.reply, 'assistant');
-                chatHistory = data.history;
-
-            } catch (error) {
-                console.error('Error:', error);
-                appendMessage('Error', `Sorry, something went wrong: ${error.message}`, 'assistant');
-            }
+            eventSource.onerror = function(err) {
+                console.error("EventSource failed:", err);
+                textElement.textContent = "An error occurred while connecting to the server.";
+                eventSource.close();
+            };
         });
 
         function appendMessage(sender, text, type) {
             const messageWrapper = document.createElement('div');
-            messageWrapper.classList.add('flex', 'flex-col', type === 'user' ? 'items-end' : 'items-start');
+            messageWrapper.classList.add('flex', 'flex-col', type === 'user' ? 'items-end' : 'items-start', 'mb-4');
 
             const messageElement = document.createElement('div');
-            messageElement.classList.add('max-w-md', 'p-3', 'rounded-lg', 'border');
+            messageElement.classList.add('max-w-xl', 'p-3', 'rounded-lg', 'border');
             
             if (type === 'user') {
                 messageElement.classList.add('bg-primary-600', 'text-white', 'border-primary-700', 'rounded-br-none');
             } else {
-                messageElement.classList.add('bg-neutral-100', 'dark:bg-neutral-700', 'text-neutral-900', 'dark:text-white', 'border-neutral-200', 'dark:border-neutral-600', 'rounded-bl-none');
+                messageElement.classList.add('bg-neutral-100', 'dark:bg-neutral-800', 'text-neutral-900', 'dark:text-white', 'border-neutral-200', 'dark:border-neutral-700', 'rounded-bl-none');
             }
 
             const senderElement = document.createElement('div');
-            senderElement.classList.add('text-sm', 'font-semibold');
+            senderElement.classList.add('text-sm', 'font-semibold', 'mb-1');
             senderElement.textContent = sender;
 
             const textElement = document.createElement('p');
-            textElement.classList.add('text-sm', 'mt-1');
+            textElement.classList.add('text-sm');
             textElement.innerHTML = text.replace(/\n/g, '<br>');
 
             messageElement.appendChild(senderElement);
@@ -119,6 +124,7 @@
             messageWrapper.appendChild(messageElement);
             chatBox.appendChild(messageWrapper);
             chatBox.scrollTop = chatBox.scrollHeight;
+            return messageElement;
         }
     });
 </script>

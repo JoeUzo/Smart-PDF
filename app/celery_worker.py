@@ -2,18 +2,23 @@ import os
 import shutil
 import zipfile
 import logging
+import time
 from pathlib import Path
 import openai
 from celery import Celery
+from celery.schedules import crontab
 from dotenv import load_dotenv
-from PIL import Image
-import pikepdf
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_openai import OpenAIEmbeddings
 from pypdf import PdfReader, PdfWriter
 from pdf2docx import Converter
 from docx2pdf import convert as docx_to_pdf_convert
-from app.config import settings
+import pikepdf
 import subprocess
 import platform
+
+from app.config import settings
 
 load_dotenv()
 
@@ -23,6 +28,13 @@ celery_app = Celery(
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend
 )
+
+celery_app.conf.beat_schedule = {
+    'cleanup-old-uploads-daily': {
+        'task': 'app.celery_worker.cleanup_old_directories_task',
+        'schedule': crontab(hour=3, minute=0),  # Runs daily at 3:00 AM
+    },
+}
 
 logger = logging.getLogger(__name__)
 openai.api_key = settings.openai_api_key
@@ -44,55 +56,107 @@ def cleanup_directory(dir_path: Path):
     bind=True,
     autoretry_for=(openai.OpenAIError,),
     retry_backoff=True,
-    max_retries=3
+    max_retries=3,
+    task_reject_on_worker_lost=True
 )
 def summarize_pdf_task(self, file_path: str, model: str):
+    """
+    Extracts text from a PDF, creates a vector index of its content for RAG,
+    and generates an initial summary.
+    """
+    job_id = self.request.id
     file_path = Path(file_path)
+    upload_dir = file_path.parent
+    faiss_index_path = upload_dir / "faiss_index"
+
     try:
         # 1. Extract text from PDF
+        logger.info(f"[{job_id}] Starting text extraction from {file_path.name}")
         reader = PdfReader(file_path)
-        text = ""
-        for page in reader.pages:
-            extracted_text = page.extract_text()
-            if extracted_text:
-                text += extracted_text
+        text = "".join(page.extract_text() or "" for page in reader.pages)
 
-        if not text:
-            raise ValueError("Could not extract text from the PDF.")
+        if not text.strip():
+            raise ValueError("Could not extract text from the PDF or the PDF is empty.")
 
-        # 2. Store full text for chat context
-        context_path = file_path.parent / "context.txt"
-        context_path.write_text(text, encoding="utf-8")
+        # 2. Create token-aware chunks
+        logger.info(f"[{job_id}] Splitting text into chunks.")
+        text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+            model_name="text-embedding-ada-002",
+            chunk_size=500,
+            chunk_overlap=100,
+        )
+        chunks = text_splitter.split_text(text)
+        logger.info(f"[{job_id}] Created {len(chunks)} text chunks.")
 
-        # 3. Chunk text for summary
-        summary_prompt_text = text[:4000]
+        # 3. Generate embeddings and create FAISS index
+        logger.info(f"[{job_id}] Generating embeddings and creating FAISS index.")
+        embeddings = OpenAIEmbeddings(api_key=settings.openai_api_key)
+        vector_store = FAISS.from_texts(texts=chunks, embedding=embeddings)
 
-        # 4. Call OpenAI for a concise overview
+        # 4. Save FAISS index to disk
+        vector_store.save_local(str(faiss_index_path))
+        logger.info(f"[{job_id}] FAISS index saved to {faiss_index_path}")
+
+        # 5. Generate a concise overview summary from the first few chunks
+        summary_prompt_text = "\n".join(chunks[:4]) # Use first few chunks for a summary
         response = openai.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that summarizes documents."},
-                {"role": "user", "content": f"Please provide a concise summary of the following document:\n\n{summary_prompt_text}"}
+                {"role": "user", "content": f"Please provide a concise summary of the following document based on this initial content:\n\n{summary_prompt_text}"}
             ],
-            max_tokens=150
+            max_tokens=250
         )
         summary = response.choices[0].message.content
 
-        return {
+        # 6. Save result to a JSON file for the frontend to fetch
+        result = {
             "summary": summary,
-            "job_id": file_path.parent.name,
-            "filename": file_path.name
+            "job_id": upload_dir.name,
+            "filename": file_path.name,
         }
+        details_path = upload_dir / "details.json"
+        with open(details_path, "w", encoding="utf-8") as f:
+            import json
+            json.dump(result, f)
+
+        return result
+    except openai.OpenAIError as e:
+        logger.error(f"[{job_id}] OpenAI API error in summarize_pdf_task: {e!r}")
+        # This will trigger the autoretry mechanism
+        raise
     except Exception as e:
         logger.error(
-            f"Error in summarize_pdf_task for job {self.request.id} "
-            f"with file {file_path.name} (size: {file_path.stat().st_size} bytes): {e}",
+            f"[{job_id}] Unrecoverable error in summarize_pdf_task for file {file_path.name}: {e!r}",
             exc_info=True
         )
-        cleanup_directory(file_path.parent)
+        cleanup_directory(upload_dir)
+        # Re-raise to mark the task as failed
         raise
 
-
+@celery_app.task
+def cleanup_old_directories_task():
+    """
+    Periodically cleans up upload directories older than a specified TTL.
+    """
+    upload_dir = Path(__file__).resolve().parent.parent / "uploads"
+    ttl_seconds = settings.upload_dir_ttl_hours * 3600
+    now = time.time()
+    
+    logger.info("Running scheduled cleanup of old upload directories...")
+    for subdir in upload_dir.iterdir():
+        if subdir.is_dir():
+            try:
+                dir_mtime = subdir.stat().st_mtime
+                if (now - dir_mtime) > ttl_seconds:
+                    logger.info(f"Removing old directory: {subdir.name}")
+                    cleanup_directory(subdir)
+            except FileNotFoundError:
+                # Directory might have been deleted by another process
+                continue
+            except Exception as e:
+                logger.error(f"Error during cleanup of directory {subdir.name}: {e!r}", exc_info=True)
+    logger.info("Cleanup task finished.")
 
 
 @celery_app.task(bind=True)
@@ -229,7 +293,7 @@ def compress_pdf_task(self, file_path: str, output_path: str):
 
 def ghostscript_compress(input_path: Path, output_path: Path):
     if platform.system() == "Windows":
-        return
+        gs_executable = shutil.which("gswin64c") or shutil.which("gswin32c")
     else:
         gs_executable = shutil.which("gs")  # Linux/Mac/Docker
 
