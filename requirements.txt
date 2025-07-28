@@ -21,3 +21,5 @@ langchain
 langchain_community
 langchain_openai
 tiktoken
+pytesseract
+pdf2image

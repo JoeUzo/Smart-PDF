@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     log_dir: str = "logs"
 
+    # OCR Configuration
+    ocr_enabled: bool = True
+    ocr_dpi: int = 300
+    ocr_lang: str = "eng"
+    ocr_config: str = r'--oem 3 --psm 6'
+    ocr_save_debug_images: bool = True
     class Config:
         env_file = ".env"
         extra = "ignore"
