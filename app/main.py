@@ -10,12 +10,12 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 
-from celery_worker import (
+from app.celery_worker import (
     merge_pdfs_task, split_pdf_task, pdf_to_word_task,
     word_to_pdf_task, compress_pdf_task, summarize_pdf_task
 )
-from utils import save_upload_file, cleanup_directory
-from config import settings
+from app.utils import save_upload_file, cleanup_directory
+from app.config import settings
 
 app = FastAPI()
 
@@ -29,7 +29,7 @@ app.add_middleware(
 )
 
 # --- Configuration and Setup ---
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 UPLOAD_DIR = BASE_DIR / "uploads"
 STATIC_DIR = BASE_DIR / "static"
 

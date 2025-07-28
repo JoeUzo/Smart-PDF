@@ -11,7 +11,7 @@ import pikepdf
 from pypdf import PdfReader, PdfWriter
 from pdf2docx import Converter
 from docx2pdf import convert as docx_to_pdf_convert
-from config import settings
+from app.config import settings
 import subprocess
 import platform
 
