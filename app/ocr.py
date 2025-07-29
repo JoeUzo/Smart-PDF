@@ -10,8 +10,11 @@ from PIL import Image
 import pytesseract
 
 from app.config import settings
+from app.utils import setup_logging
 
-logger = logging.getLogger(__name__)
+# --- Logging Setup ---
+LOG_DIR = Path(__file__).resolve().parent.parent / settings.log_dir
+logger = setup_logging(LOG_DIR)
 
 MIN_TEXT_LENGTH_THRESHOLD = 100  # If digital text is less than this, OCR will be triggered.
 

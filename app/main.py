@@ -1,7 +1,6 @@
 import uuid
 import logging
 import json
-from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from typing import List, AsyncGenerator
 import openai
@@ -23,7 +22,7 @@ from app.celery_worker import (
     word_to_pdf_task, compress_pdf_task, summarize_pdf_task
 )
 from app.utils import (
-    save_upload_file, cleanup_directory, load_ai_prompts_json
+    save_upload_file, cleanup_directory, load_ai_prompts_json, setup_logging
 )
 from app.config import settings
 
@@ -37,36 +36,15 @@ UPLOAD_DIR = BASE_DIR / "uploads"
 STATIC_DIR = BASE_DIR / "static"
 LOG_DIR = BASE_DIR / settings.log_dir
 
+# Setup logging
+logger = setup_logging(LOG_DIR)
+
 # Load prompts from JSON file
 AI_PROMPT = load_ai_prompts_json()
 
 # Create directories if they don't exist
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-# --- Logging Setup ---
-log_formatter = logging.Formatter(
-    "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-)
-# Use a rotating file handler
-log_file = LOG_DIR / "app.log"
-file_handler = TimedRotatingFileHandler(
-    log_file, when="midnight", interval=1, backupCount=30, encoding="utf-8"
-)
-file_handler.setFormatter(log_formatter)
-file_handler.setLevel(logging.INFO)
-
-# Get the root logger and add the file handler
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.INFO)
-root_logger.addHandler(file_handler)
-
-# Also, keep logging to the console
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(log_formatter)
-root_logger.addHandler(stream_handler)
-
-logger = logging.getLogger(__name__)
 
 # --- Middleware ---
 app.add_middleware(

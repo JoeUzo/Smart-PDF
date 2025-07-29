@@ -20,7 +20,11 @@ import platform
 
 from app.config import settings
 from app.ocr import extract_text_with_ocr
-from app.utils import load_ai_prompts_json
+from app.utils import load_ai_prompts_json, setup_logging
+
+# --- Logging Setup ---
+LOG_DIR = Path(__file__).resolve().parent.parent / settings.log_dir
+logger = setup_logging(LOG_DIR)
 
 # Load prompts from JSON file
 AI_PROMPTS = load_ai_prompts_json()
@@ -39,7 +43,6 @@ celery_app.conf.beat_schedule = {
     },
 }
 
-logger = logging.getLogger(__name__)
 openai.api_key = settings.openai_api_key
 
 # --- Helper Functions ---

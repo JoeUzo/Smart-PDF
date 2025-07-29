@@ -2,6 +2,8 @@ import os
 import json
 import uuid
 import shutil
+import logging
+from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from typing import List
 import aiofiles
@@ -11,6 +13,38 @@ from fastapi import UploadFile, HTTPException
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc"}
 # Maximum file size (e.g., 100 MB)
 MAX_FILE_SIZE = 100 * 1024 * 1024
+
+def setup_logging(log_dir: Path):
+    """Configures a rotating file logger."""
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "app.log"
+
+    log_formatter = logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+    )
+
+    # Use a rotating file handler
+    file_handler = TimedRotatingFileHandler(
+        log_file, when="midnight", interval=1, backupCount=30, encoding="utf-8"
+    )
+    file_handler.setFormatter(log_formatter)
+    file_handler.setLevel(logging.INFO)
+
+    # Get the root logger and add the file handler
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    
+    # Avoid adding duplicate handlers if this function is called multiple times
+    if not any(isinstance(h, TimedRotatingFileHandler) for h in root_logger.handlers):
+        root_logger.addHandler(file_handler)
+
+    # Also, keep logging to the console
+    if not any(isinstance(h, logging.StreamHandler) for h in root_logger.handlers):
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(log_formatter)
+        root_logger.addHandler(stream_handler)
+    
+    return logging.getLogger(__name__)
 
 def secure_filename(filename: str) -> str:
     """Sanitizes a filename to prevent path traversal attacks."""
