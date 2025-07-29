@@ -1,9 +1,9 @@
 import uuid
 import logging
+import json
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from typing import List, AsyncGenerator
-
 import openai
 from openai import AsyncOpenAI
 import aiofiles
@@ -22,8 +22,11 @@ from app.celery_worker import (
     merge_pdfs_task, split_pdf_task, pdf_to_word_task,
     word_to_pdf_task, compress_pdf_task, summarize_pdf_task
 )
-from app.utils import save_upload_file, cleanup_directory
+from app.utils import (
+    save_upload_file, cleanup_directory, load_ai_prompts_json
+)
 from app.config import settings
+
 
 # --- App and Logging Setup ---
 app = FastAPI()
@@ -33,6 +36,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 UPLOAD_DIR = BASE_DIR / "uploads"
 STATIC_DIR = BASE_DIR / "static"
 LOG_DIR = BASE_DIR / settings.log_dir
+
+# Load prompts from JSON file
+AI_PROMPT = load_ai_prompts_json()
 
 # Create directories if they don't exist
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -158,7 +164,7 @@ async def summarize_endpoint(request: Request, file: UploadFile = File(...)):
         saved_path = await save_upload_file(file, task_dir)
         
         # The Celery task ID is different from the job_id (directory name)
-        task = summarize_pdf_task.delay(str(saved_path), settings.openai_models[0])
+        task = summarize_pdf_task.delay(str(saved_path))
         
         # We pass the job_id (directory name) to the processing page
         return templates.TemplateResponse(
@@ -199,7 +205,7 @@ async def chat_page(request: Request, job_id: str):
 
     async with aiofiles.open(details_path, "r") as f:
         content = await f.read()
-        result = SummarizeResponse.parse_raw(content)
+        result = SummarizeResponse.model_validate_json(content)
 
     pdf_url = f"/uploads/{job_id}/{result.filename}"
 
@@ -211,7 +217,6 @@ async def chat_page(request: Request, job_id: str):
         "openai_models": settings.openai_models
     })
 
-import json
 
 async def stream_chat_responses(vector_store: FAISS, chat_request: ChatRequest) -> AsyncGenerator[str, None]:
     """Generator for streaming chat responses using RAG."""
@@ -222,15 +227,13 @@ async def stream_chat_responses(vector_store: FAISS, chat_request: ChatRequest) 
     context = "\n---\n".join([doc.page_content for doc in relevant_docs])
     
     # 2. Build the prompt
-    system_prompt = (
-        "You are a helpful assistant. The user has provided a PDF document. "
-        "Your task is to answer questions based on the provided context from the document. "
-        "Do not make up answers if the context does not contain the information."
-    )
+    system_prompt = AI_PROMPT["chat_prompt"]["system"]
+    user_prompt = AI_PROMPT["chat_prompt"]["user_template"].format(context=context)
+    generation_params = AI_PROMPT["chat_prompt"].get("generation_parameters", {})
     
     prompt_messages = [
         Message(role="system", content=system_prompt),
-        Message(role="user", content=f"Here is the relevant context from the PDF:\n\n{context}"),
+        Message(role="user", content=user_prompt),
     ]
     prompt_messages.extend(chat_request.history)
     prompt_messages.append(Message(role="user", content=chat_request.message))
@@ -240,8 +243,7 @@ async def stream_chat_responses(vector_store: FAISS, chat_request: ChatRequest) 
         response_stream = await client.chat.completions.create(
             model=chat_request.model,
             messages=[msg.model_dump() for msg in prompt_messages],
-            stream=True,
-            temperature=0.7,
+            **generation_params
         )
         async for chunk in response_stream:
             content = chunk.choices[0].delta.content

@@ -1,0 +1,24 @@
+{
+  "summarization_prompt": {
+    "description": "Generate a concise summary of a document excerpt",
+    "system": "You are a concise summarization assistant. Your job is to extract and distill the key points from the user’s document excerpt without adding any information not present in the text.",
+    "user_template": "Document excerpt:\n\n{summary_prompt_text}\n\nPlease provide a clear, bullet‑point summary (3–5 points) of the above content.",
+    "generation_parameters": {
+      "model": "gpt-3.5-turbo",
+      "temperature": 0.0,
+      "top_p": 1.0,
+      "max_tokens": 300
+    }
+  },
+  "chat_prompt": {
+    "description": "Answer student questions using notes and supplement with external knowledge when needed",
+    "system": "You are a subject‑matter expert tutor. Use the provided notes as the primary source. If a question goes beyond the notes, supplement with your general academic knowledge, and clearly prefix that part with “Based on general knowledge…”",
+    "user_template": "Notes context:\n{context}\n\nFirst try to answer solely from the notes. If you must, add extra explanation from your broader knowledge, using “Based on general knowledge…” to label it.",
+    "generation_parameters": {
+      "temperature": 0.2,
+      "top_p": 1.0,
+      "max_tokens": 1024,
+      "stream": true
+    }
+  }
+}

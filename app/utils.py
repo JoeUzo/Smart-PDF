@@ -1,4 +1,5 @@
 import os
+import json
 import uuid
 import shutil
 from pathlib import Path
@@ -57,3 +58,11 @@ def cleanup_directory(dir_path: Path):
     """Recursively removes a directory and its contents."""
     if dir_path.exists() and dir_path.is_dir():
         shutil.rmtree(dir_path)
+
+def load_ai_prompts_json():
+    """extracts AI prompts from a JSON file."""
+    prompts_path = Path(__file__).resolve().parent.parent/ "config" / "ai_prompts.json"
+    with open(prompts_path, "r", encoding="utf-8") as f:
+        ai_prompt = json.load(f)
+    
+    return ai_prompt

@@ -8,7 +8,6 @@ from pathlib import Path
 import openai
 from celery import Celery
 from celery.schedules import crontab
-from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
@@ -21,8 +20,10 @@ import platform
 
 from app.config import settings
 from app.ocr import extract_text_with_ocr
+from app.utils import load_ai_prompts_json
 
-load_dotenv()
+# Load prompts from JSON file
+AI_PROMPTS = load_ai_prompts_json()
 
 # --- Celery Configuration ---
 celery_app = Celery(
@@ -61,7 +62,7 @@ def cleanup_directory(dir_path: Path):
     max_retries=3,
     task_reject_on_worker_lost=True
 )
-def summarize_pdf_task(self, file_path: str, model: str):
+def summarize_pdf_task(self, file_path: str):
     """
     Extracts text from a PDF (with OCR fallback), creates a vector index,
     and generates an initial summary.
@@ -76,7 +77,7 @@ def summarize_pdf_task(self, file_path: str, model: str):
         full_text = extract_text_with_ocr(file_path, job_id)
 
         if not full_text.strip():
-    # return a graceful error payload instead of blowing up
+        # return a graceful error payload instead of blowing up
             return {
                 "summary": None,
                 "job_id": upload_dir.name,
@@ -113,13 +114,19 @@ def summarize_pdf_task(self, file_path: str, model: str):
 
         # 6. Generate a concise overview summary from the first few chunks
         summary_prompt_text = "\n".join(chunks[:4])
+
+        prompt_config = AI_PROMPTS["summarization_prompt"]
+        system_prompt = prompt_config["system"]
+        user_prompt = prompt_config["user_template"].format(summary_prompt_text=summary_prompt_text)
+        generation_params = prompt_config.get("generation_parameters", {})
+
         response = openai.chat.completions.create(
-            model=model,
+            # model=model,
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that summarizes documents."},
-                {"role": "user", "content": f"Please provide a concise summary of the following document based on this initial content:\n\n{summary_prompt_text}"}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
             ],
-            max_tokens=250
+            **generation_params
         )
         summary = response.choices[0].message.content
 
