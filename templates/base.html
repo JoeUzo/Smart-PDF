@@ -17,7 +17,7 @@
         }
     </script>
 </head>
-<body class="bg-neutral-50 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 font-sans antialiased">
+<body class="bg-neutral-50 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 font-sans antialiased flex flex-col min-h-screen">
 
     <header class="sticky top-0 z-40 w-full border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/80 backdrop-blur-sm">
         <div class="container mx-auto px-4">
@@ -65,7 +65,7 @@
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-8">
+    <main class="container mx-auto px-4 py-8 flex-grow">
         {% block content %}{% endblock %}
     </main>
 
