@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     upload_dir_ttl_hours: int = 24
     redis_url: str = "redis://localhost:6379/0"
     log_dir: str = "logs"
+    email: str = None
+    email_key: str = None
 
     # OCR Configuration
     ocr_enabled: bool = True

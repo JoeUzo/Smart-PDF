@@ -3,11 +3,53 @@ import json
 import uuid
 import shutil
 import logging
+import smtplib
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from typing import List
 import aiofiles
 from fastapi import UploadFile, HTTPException
+from pydantic import BaseModel, EmailStr
+from app.config import Settings
+
+# Allowed file extensions for upload
+ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc"}
+# Maximum file size (e.g., 100 MB)
+MAX_FILE_SIZE = 100 * 1024 * 1024
+
+class EmailSchema(BaseModel):
+    name: str
+    email: EmailStr
+    phone: str
+    message: str
+
+def send_mail(data: EmailSchema):
+    settings = Settings()
+    if not settings.email or not settings.email_key:
+        raise ValueError("EMAIL or EMAIL_KEY is not set in the environment.")
+
+    message = f"Name: {data.name}\nEmail: {data.email}\n" \
+              f"Phone No.: {data.phone}\nMessage: {data.message}"
+
+    try:
+        with smtplib.SMTP("smtp.gmail.com", port=587, timeout=60) as connection:
+            connection.starttls()
+            connection.login(user=settings.email, password=settings.email_key)
+            connection.sendmail(
+                from_addr=settings.email,
+                to_addrs=settings.email,
+                msg=f"subject: Smart PDF\n\n{message}".encode('utf-8')
+            )
+    except smtplib.SMTPConnectError as e:
+        print(f"Failed to connect to the SMTP server. Error: {e}")
+        print("Make sure the network allows outbound connection to port 587.")
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"Authentication error: {e}")
+        print("Ensure EMAIL and EMAIL_KEY are correct and App Passwords are enabled.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        print("Check your environment or try again later.")
+
 
 # Allowed file extensions for upload
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc"}

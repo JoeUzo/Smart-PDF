@@ -22,7 +22,8 @@ from app.celery_worker import (
     word_to_pdf_task, compress_pdf_task, summarize_pdf_task
 )
 from app.utils import (
-    save_upload_file, cleanup_directory, load_ai_prompts_json, setup_logging
+    save_upload_file, cleanup_directory, load_ai_prompts_json, setup_logging,
+    EmailSchema, send_mail
 )
 from app.config import settings
 
@@ -108,6 +109,32 @@ def get_vector_store(job_id: str) -> FAISS:
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/contact", response_class=HTMLResponse)
+async def contact_page(request: Request):
+    return templates.TemplateResponse("contact_us.html", {"request": request})
+
+@app.post("/contact", response_class=HTMLResponse)
+async def contact_form(request: Request, name: str = Form(...), email: str = Form(...), phone: str = Form(...), message: str = Form(...)):
+    email_data = EmailSchema(name=name, email=email, phone=phone, message=message)
+    try:
+        send_mail(email_data)
+        return templates.TemplateResponse("contact_us.html", {"request": request, "success": True})
+    except ValueError as e:
+        logger.error(f"Email sending error: {e}")
+        return templates.TemplateResponse("contact_us.html", {"request": request, "error": "Could not send email. Please check server configuration."})
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        return templates.TemplateResponse("contact_us.html", {"request": request, "error": "An unexpected error occurred."})
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_page(request: Request):
+    return templates.TemplateResponse("privacy_policy.html", {"request": request})
+
+@app.get("/terms", response_class=HTMLResponse)
+async def terms_page(request: Request):
+    return templates.TemplateResponse("terms_of_service.html", {"request": request})
 
 @app.get("/health", status_code=200)
 def health_check():
