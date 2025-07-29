@@ -16,6 +16,7 @@ docker-compose.yml
 # IDEs and local files
 .idea/
 *.log
+*.log.*
 
 # Project-specific
 uploads/

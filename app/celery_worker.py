@@ -2,20 +2,32 @@ import os
 import shutil
 import zipfile
 import logging
+import time
+import json
 from pathlib import Path
 import openai
 from celery import Celery
-from dotenv import load_dotenv
-from PIL import Image
-import pikepdf
+from celery.schedules import crontab
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_openai import OpenAIEmbeddings
 from pypdf import PdfReader, PdfWriter
 from pdf2docx import Converter
 from docx2pdf import convert as docx_to_pdf_convert
-from config import settings
+import pikepdf
 import subprocess
 import platform
 
-load_dotenv()
+from app.config import settings
+from app.ocr import extract_text_with_ocr
+from app.utils import load_ai_prompts_json, setup_logging
+
+# --- Logging Setup ---
+LOG_DIR = Path(__file__).resolve().parent.parent / settings.log_dir
+logger = setup_logging(LOG_DIR)
+
+# Load prompts from JSON file
+AI_PROMPTS = load_ai_prompts_json()
 
 # --- Celery Configuration ---
 celery_app = Celery(
@@ -24,7 +36,13 @@ celery_app = Celery(
     backend=settings.celery_result_backend
 )
 
-logger = logging.getLogger(__name__)
+celery_app.conf.beat_schedule = {
+    'cleanup-old-uploads-daily': {
+        'task': 'app.celery_worker.cleanup_old_directories_task',
+        'schedule': crontab(hour=3, minute=0),  # Runs daily at 3:00 AM
+    },
+}
+
 openai.api_key = settings.openai_api_key
 
 # --- Helper Functions ---
@@ -40,46 +58,125 @@ def cleanup_directory(dir_path: Path):
 
 # --- Celery Tasks ---
 
-@celery_app.task(bind=True)
-def summarize_pdf_task(self, file_path: str, model: str):
+@celery_app.task(
+    bind=True,
+    autoretry_for=(openai.OpenAIError,),
+    retry_backoff=True,
+    max_retries=3,
+    task_reject_on_worker_lost=True
+)
+def summarize_pdf_task(self, file_path: str):
+    """
+    Extracts text from a PDF (with OCR fallback), creates a vector index,
+    and generates an initial summary.
+    """
+    job_id = self.request.id
     file_path = Path(file_path)
+    upload_dir = file_path.parent
+    faiss_index_path = upload_dir / "faiss_index"
+
     try:
-        # 1. Extract text from PDF
-        reader = PdfReader(file_path)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text()
+        # 1. Extract text from PDF using the new OCR-aware function
+        full_text = extract_text_with_ocr(file_path, job_id)
 
-        # 2. Store full text for chat context
-        context_path = file_path.parent / "context.txt"
-        context_path.write_text(text,  encoding="utf-8")
+        if not full_text.strip():
+        # return a graceful error payload instead of blowing up
+            return {
+                "summary": None,
+                "job_id": upload_dir.name,
+                "filename": file_path.name,
+                "error": "No text could be extracted from the PDF"
+            }
 
-        # 3. Chunk text for summary
-        # A simple way to chunk is to take the beginning of the text.
-        # A more advanced approach would be to use token-aware chunking.
-        summary_prompt_text = text[:4000] # Limit to approx. 1000 tokens for the prompt
 
-        # 4. Call OpenAI for a concise overview
+        # 2. Store full text for chat context (optional, as we use RAG)
+        context_path = upload_dir / "context.txt"
+        context_path.write_text(full_text, encoding="utf-8")
+
+        # 3. Create token-aware chunks
+        logger.info(f"[{job_id}] Splitting text into chunks.")
+        text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+            model_name="text-embedding-ada-002",
+            chunk_size=500,
+            chunk_overlap=100,
+        )
+        chunks = text_splitter.split_text(full_text)
+        logger.info(f"[{job_id}] Created {len(chunks)} text chunks.")
+
+        if not chunks:
+            raise ValueError("Text was extracted, but splitting into chunks failed.")
+
+        # 4. Generate embeddings and create FAISS index
+        logger.info(f"[{job_id}] Generating embeddings and creating FAISS index.")
+        embeddings = OpenAIEmbeddings(api_key=settings.openai_api_key)
+        vector_store = FAISS.from_texts(texts=chunks, embedding=embeddings)
+
+        # 5. Save FAISS index to disk
+        vector_store.save_local(str(faiss_index_path))
+        logger.info(f"[{job_id}] FAISS index saved to {faiss_index_path}")
+
+        # 6. Generate a concise overview summary from the first few chunks
+        summary_prompt_text = "\n".join(chunks[:4])
+
+        prompt_config = AI_PROMPTS["summarization_prompt"]
+        system_prompt = prompt_config["system"]
+        user_prompt = prompt_config["user_template"].format(summary_prompt_text=summary_prompt_text)
+        generation_params = prompt_config.get("generation_parameters", {})
+
         response = openai.chat.completions.create(
-            model=model,
+            # model=model,
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that summarizes documents."},
-                {"role": "user", "content": f"Please provide a concise summary of the following document:\n\n{summary_prompt_text}"}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
             ],
-            max_tokens=150
+            **generation_params
         )
         summary = response.choices[0].message.content
 
-        return {
+        # 7. Save result to a JSON file for the frontend to fetch
+        result = {
             "summary": summary,
-            "job_id": file_path.parent.name,
-            "filename": file_path.name
+            "job_id": upload_dir.name,
+            "filename": file_path.name,
         }
-    except Exception as e:
-        logger.error(f"Error in summarize_pdf_task for {file_path.name}: {e}", exc_info=True)
-        cleanup_directory(file_path.parent)
-        raise
+        details_path = upload_dir / "details.json"
+        with open(details_path, "w", encoding="utf-8") as f:
+            json.dump(result, f)
 
+        return result
+    except openai.OpenAIError as e:
+        logger.error(f"[{job_id}] OpenAI API error in summarize_pdf_task: {e!r}")
+        raise  # Trigger Celery's autoretry
+    except Exception as e:
+        logger.error(
+            f"[{job_id}] Unrecoverable error in summarize_pdf_task for file {file_path.name}: {e!r}",
+            exc_info=True
+        )
+        cleanup_directory(upload_dir)
+        raise  # Mark the task as failed
+
+@celery_app.task
+def cleanup_old_directories_task():
+    """
+    Periodically cleans up upload directories older than a specified TTL.
+    """
+    upload_dir = Path(__file__).resolve().parent.parent / "uploads"
+    ttl_seconds = settings.upload_dir_ttl_hours * 3600
+    now = time.time()
+    
+    logger.info("Running scheduled cleanup of old upload directories...")
+    for subdir in upload_dir.iterdir():
+        if subdir.is_dir():
+            try:
+                dir_mtime = subdir.stat().st_mtime
+                if (now - dir_mtime) > ttl_seconds:
+                    logger.info(f"Removing old directory: {subdir.name}")
+                    cleanup_directory(subdir)
+            except FileNotFoundError:
+                continue
+            except Exception as e:
+                logger.error(f"Error during cleanup of directory {subdir.name}: {e!r}", exc_info=True)
+    logger.info("Cleanup task finished.")
 
 
 @celery_app.task(bind=True)
@@ -95,7 +192,6 @@ def merge_pdfs_task(self, file_paths: list[str], output_path: str):
         writer.write(str(output_path))
         writer.close()
         
-        # Clean up the original uploaded files
         for file_path_str in file_paths:
             Path(file_path_str).unlink()
             
@@ -114,7 +210,6 @@ def split_pdf_task(self, file_path: str, ranges: str | None, output_dir: str):
     try:
         reader = PdfReader(file_path)
         if ranges:
-            # Logic for splitting based on custom ranges
             page_groups = ranges.split(',')
             for i, group in enumerate(page_groups):
                 writer = PdfWriter()
@@ -129,22 +224,20 @@ def split_pdf_task(self, file_path: str, ranges: str | None, output_dir: str):
                 with open(output_dir / split_filename, "wb") as f:
                     writer.write(f)
         else:
-            # Logic for splitting all pages into individual files
             for i, page in enumerate(reader.pages):
                 writer = PdfWriter()
                 writer.add_page(page)
                 with open(output_dir / f"page_{i+1}.pdf", "wb") as f:
                     writer.write(f)
 
-        # Zip the results
         zip_filename = "split_pages.zip"
         zip_path = file_path.parent / zip_filename
         with zipfile.ZipFile(zip_path, 'w') as zipf:
             for f in output_dir.glob('*.pdf'):
                 zipf.write(f, f.name)
         
-        shutil.rmtree(output_dir) # Clean up the intermediate split files
-        file_path.unlink() # Clean up original upload
+        shutil.rmtree(output_dir)
+        file_path.unlink()
         
         return get_relative_path(zip_path)
     except Exception as e:
@@ -186,7 +279,6 @@ def compress_pdf_task(self, file_path: str, output_path: str):
     output_path = Path(output_path)
 
     try:
-        # Step 1: Compress using pikepdf
         with pikepdf.open(file_path) as pdf:
             pdf.save(
                 output_path,
@@ -195,7 +287,6 @@ def compress_pdf_task(self, file_path: str, output_path: str):
                 linearize=True
             )
 
-        # Step 2: Check if size reduction happened
         original_size = file_path.stat().st_size
         compressed_size = output_path.stat().st_size
 
@@ -216,9 +307,9 @@ def compress_pdf_task(self, file_path: str, output_path: str):
 
 def ghostscript_compress(input_path: Path, output_path: Path):
     if platform.system() == "Windows":
-        return
+        gs_executable = shutil.which("gswin64c") or shutil.which("gswin32c")
     else:
-        gs_executable = shutil.which("gs")  # Linux/Mac/Docker
+        gs_executable = shutil.which("gs")
 
     if not gs_executable:
         raise FileNotFoundError("Ghostscript executable not found. Install it or update PATH.")
