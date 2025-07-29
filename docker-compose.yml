@@ -5,6 +5,8 @@ services:
       - "8000:80"
     volumes:
       - .:/app
+      - uploads_data:/app/uploads
+      - logs_data:/app/logs
     depends_on:
       - redis
     environment:
@@ -12,19 +14,41 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     env_file:
       - .env
+    networks:
+      - app
 
   redis:
     image: "redis:alpine"
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app
 
   worker:
     build: .
     command: celery -A app.celery_worker.celery_app worker --loglevel=info
     volumes:
       - .:/app
+      - uploads_data:/app/uploads
     depends_on:
       - redis
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    networks:
+      - app
+
+
+networks:
+  app:
+    driver: bridge
+
+volumes:
+  uploads_data:
+    driver: local
+  logs_data:
+    driver: local
+  redis_data:
+    driver: local
