@@ -4,7 +4,6 @@ services:
     ports:
       - "8000:80"
     volumes:
-      - .:/app
       - uploads_data:/app/uploads
       - logs_data:/app/logs
     depends_on:
@@ -30,7 +29,6 @@ services:
     build: .
     command: celery -A app.celery_worker.celery_app worker --loglevel=info
     volumes:
-      - .:/app
       - uploads_data:/app/uploads
     depends_on:
       - redis
@@ -62,8 +60,6 @@ services:
       - app
     env_file:
       - .env
-
-
 
 networks:
   app:
