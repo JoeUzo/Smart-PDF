@@ -293,7 +293,7 @@ def compress_pdf_task(self, file_path: str, output_path: str):
         logger.info(f"Original PDF size: {original_size / 1024:.2f} KB")
         logger.info(f"Compressed PDF size: {compressed_size / 1024:.2f} KB")
 
-        if compressed_size >= original_size:
+        if compressed_size >= original_size * 0.95:
             logger.info("PikePDF compression not effective, trying Ghostscript...")
             ghostscript_compress(file_path, output_path)
 
