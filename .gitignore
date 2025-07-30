@@ -143,7 +143,9 @@ node_modules/
 
 # Frontend
 /static/css/styles.css
+/static/css/output.css
 
-# Uploads
+# Uploads & Logs
 uploads/
 tmp/
+logs/
