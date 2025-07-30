@@ -1,7 +1,6 @@
 import os
 import shutil
 import zipfile
-import logging
 import time
 import json
 from pathlib import Path
@@ -13,10 +12,11 @@ from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 from pypdf import PdfReader, PdfWriter
 from pdf2docx import Converter
-from docx2pdf import convert as docx_to_pdf_convert
 import pikepdf
 import subprocess
 import platform
+from kombu import Queue
+import pymupdf
 
 from app.config import settings
 from app.ocr import extract_text_with_ocr
@@ -25,6 +25,26 @@ from app.utils import load_ai_prompts_json, setup_logging
 # --- Logging Setup ---
 LOG_DIR = Path(__file__).resolve().parent.parent / settings.log_dir
 logger = setup_logging(LOG_DIR)
+
+# --- Monkey-patch for pymupdf ---
+# Fix for "unsupported colorspace for 'png'" error in pdf2docx.
+# This can happen with PDFs that use CMYK images.
+# The patch converts CMYK pixmaps to RGB before saving as PNG.
+try:
+    _original_tobytes = pymupdf.Pixmap.tobytes
+
+    def patched_tobytes(self, output="png", jpg_quality=95):
+        if self.colorspace.name == "DeviceCMYK" and output == "png":
+            # Convert CMYK pixmap to RGB and then generate PNG
+            rgb_pixmap = pymupdf.Pixmap(pymupdf.csRGB, self)
+            return _original_tobytes(rgb_pixmap, output=output, jpg_quality=jpg_quality)
+        # For all other cases, use the original method
+        return _original_tobytes(self, output=output, jpg_quality=jpg_quality)
+
+    pymupdf.Pixmap.tobytes = patched_tobytes
+    logger.info("Successfully patched pymupdf.Pixmap.tobytes to handle CMYK images.")
+except Exception as e:
+    logger.error(f"Failed to patch pymupdf: {e}")
 
 # Load prompts from JSON file
 AI_PROMPTS = load_ai_prompts_json()
@@ -41,6 +61,19 @@ celery_app.conf.beat_schedule = {
         'task': 'app.celery_worker.cleanup_old_directories_task',
         'schedule': crontab(hour=3, minute=0),  # Runs daily at 3:00 AM
     },
+}
+
+celery_app.conf.task_queues = (
+    Queue("default", routing_key="default"),
+    Queue("heavy",   routing_key="heavy"),
+)
+
+# celery_app.conf.task_default_queue = "default"
+celery_app.conf.task_default_exchange = "default"
+celery_app.conf.task_default_routing_key = "default"
+
+celery_app.conf.task_routes = {
+    "app.celery_worker.pdf_to_word_task": {"queue": "heavy", "routing_key": "heavy"},
 }
 
 openai.api_key = settings.openai_api_key

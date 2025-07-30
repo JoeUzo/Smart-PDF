@@ -39,6 +39,31 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     networks:
       - app
+  
+  heavy-worker:
+    build: .
+    command:
+      - celery
+      - -A
+      - app.celery_worker.celery_app
+      - worker
+      - --loglevel=info
+      - --concurrency=1
+      - -Q
+      - heavy
+    volumes:
+      - .:/app
+      - uploads_data:/app/uploads
+    depends_on:
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    networks:
+      - app
+    env_file:
+      - .env
+
 
 
 networks:
