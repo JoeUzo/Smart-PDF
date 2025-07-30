@@ -66,9 +66,10 @@
             const modelSelect = document.getElementById('model-select');
             const selectedModel = modelSelect.value;
 
-            // Create a placeholder for the assistant's response
+            // Create a placeholder for the assistant's response and add .thinking class
             const assistantMessageElement = appendMessage('Assistant', '', 'assistant');
-            const textElement = assistantMessageElement.querySelector('p');
+            assistantMessageElement.classList.add('thinking');
+            const textElement = assistantMessageElement.querySelector('.message-text');
             let assistantReply = '';
 
             const eventSource = new EventSource(`/chat?job_id=${jobId}&message=${encodeURIComponent(message)}&model=${selectedModel}&history=${encodeURIComponent(JSON.stringify(chatHistory.slice(0, -1)))}`);
@@ -81,10 +82,17 @@
                 }
                 if (event.data.startsWith('[ERROR]')) {
                     const errorMsg = event.data.replace('[ERROR] ', '');
+                    assistantMessageElement.classList.remove('thinking');
                     textElement.textContent = errorMsg;
                     eventSource.close();
                     return;
                 }
+
+                // On first message, remove the thinking class to show the text
+                if (assistantMessageElement.classList.contains('thinking')) {
+                    assistantMessageElement.classList.remove('thinking');
+                }
+
                 const chunk = event.data;
                 assistantReply += chunk;
                 textElement.innerHTML = assistantReply.replace(/\n/g, '<br>');
@@ -93,6 +101,7 @@
 
             eventSource.onerror = function(err) {
                 console.error("EventSource failed:", err);
+                assistantMessageElement.classList.remove('thinking');
                 textElement.textContent = "An error occurred while connecting to the server.";
                 eventSource.close();
             };
@@ -116,11 +125,16 @@
             senderElement.textContent = sender;
 
             const textElement = document.createElement('p');
-            textElement.classList.add('text-sm');
+            textElement.classList.add('text-sm', 'message-text');
             textElement.innerHTML = text.replace(/\n/g, '<br>');
+
+            const thinkingIndicator = document.createElement('div');
+            thinkingIndicator.classList.add('thinking-indicator');
+            thinkingIndicator.innerHTML = '<span></span><span></span><span></span>';
 
             messageElement.appendChild(senderElement);
             messageElement.appendChild(textElement);
+            messageElement.appendChild(thinkingIndicator);
             messageWrapper.appendChild(messageElement);
             chatBox.appendChild(messageWrapper);
             chatBox.scrollTop = chatBox.scrollHeight;

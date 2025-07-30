@@ -1,3 +1,48 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .thinking-indicator {
+    display: none;
+    gap: 0.375rem; /* 6px */
+    align-items: flex-end;
+    justify-content: center;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .thinking-indicator span {
+    width: 0.625rem; /* 10px */
+    height: 0.625rem; /* 10px */
+    border-radius: 9999px;
+    background-color: currentColor;
+    animation: bounce 1.2s infinite;
+  }
+
+  .thinking-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .thinking-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  @keyframes bounce {
+    0%, 60%, 100% {
+      transform: translateY(0);
+    }
+    30% {
+      transform: translateY(-0.75rem); /* -12px */
+    }
+  }
+
+  /* When the parent message has .thinking, show the indicator and hide the text */
+  .thinking .thinking-indicator {
+    display: flex;
+  }
+
+  .thinking .message-text {
+    display: none;
+  }
+}
