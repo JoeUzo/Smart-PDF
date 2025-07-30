@@ -28,10 +28,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install build‑time tools
+# Install build-time tools and OCR dev libs for building wheels
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    ghostscript \
+    libtesseract-dev \
+    libleptonica-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python deps into a venv
@@ -52,18 +53,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install runtime dependencies:
-#  • ghostscript  for PDF compression
-#  • poppler-utils for pdf2image (pdftoppm/pdfinfo)
-#  • tesseract-ocr and eng data for OCR
-#  • devlibs in case wheels need to compile
+# Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ghostscript \
     poppler-utils \
     tesseract-ocr \
     tesseract-ocr-eng \
-    libtesseract-dev \
-    libleptonica-dev \
     libreoffice-writer \
     libreoffice-common \
     && rm -rf /var/lib/apt/lists/*
