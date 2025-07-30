@@ -68,7 +68,7 @@ celery_app.conf.task_queues = (
     Queue("heavy",   routing_key="heavy"),
 )
 
-# celery_app.conf.task_default_queue = "default"
+celery_app.conf.task_default_queue = "default"
 celery_app.conf.task_default_exchange = "default"
 celery_app.conf.task_default_routing_key = "default"
 
