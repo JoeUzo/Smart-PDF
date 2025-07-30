@@ -260,18 +260,51 @@ def pdf_to_word_task(self, file_path: str, output_path: str):
         cleanup_directory(file_path.parent)
         raise
 
+
 @celery_app.task(bind=True)
 def word_to_pdf_task(self, file_path: str, output_path: str):
+    """
+    Converts a .docx to PDF via headless LibreOffice on Linux.
+    """
     file_path = Path(file_path)
     output_path = Path(output_path)
     try:
-        docx_to_pdf_convert(str(file_path), str(output_path))
-        file_path.unlink()
+        # Ensure output directory exists
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Call LibreOffice in headless mode to convert:
+        subprocess.run([
+            "soffice",
+            "--headless",
+            "--convert-to", "pdf",
+            "--outdir", str(output_path.parent),
+            str(file_path)
+        ], check=True)
+
+        # LibreOffice names output file alongside input
+        generated = output_path.parent / (file_path.stem + ".pdf")
+        if not generated.exists():
+            raise FileNotFoundError(f"LibreOffice did not produce PDF for {file_path.name}")
+
+        # Clean up the original .docx
+        file_path.unlink(missing_ok=True)
+
+        # Move/rename if needed
+        if generated != output_path:
+            generated.rename(output_path)
+
         return get_relative_path(output_path)
-    except Exception as e:
-        logger.error(f"Error converting Word to PDF for task {self.request.id}: {e}", exc_info=True)
-        cleanup_directory(file_path.parent)
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"[{self.request.id}] LibreOffice conversion failed: {e!r}", exc_info=True)
+        cleanup_directory(output_path.parent)
         raise
+
+    except Exception as e:
+        logger.error(f"[{self.request.id}] Error converting Word to PDF: {e!r}", exc_info=True)
+        cleanup_directory(output_path.parent)
+        raise
+
 
 @celery_app.task(bind=True)
 def compress_pdf_task(self, file_path: str, output_path: str):
