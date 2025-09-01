@@ -38,7 +38,7 @@ def send_mail(data: EmailSchema):
             connection.sendmail(
                 from_addr=settings.email,
                 to_addrs=settings.email,
-                msg=f"subject: Smart PDF\n\n{message}".encode('utf-8')
+                msg=f"subject: Ydidu-PDFs\n\n{message}".encode('utf-8')
             )
     except smtplib.SMTPConnectError as e:
         print(f"Failed to connect to the SMTP server. Error: {e}")

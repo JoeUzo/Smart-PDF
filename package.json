@@ -1,7 +1,7 @@
 {
-  "name": "smart-pdf",
+  "name": "ydidu-pdfs",
   "version": "1.0.0",
-  "description": "Smart PDF is a web application that provides a set of tools to manage your PDF and Word documents.",
+  "description": "Ydidu-PDFs is a web application that provides a set of tools to manage your PDF and Word documents.",
   "main": "index.js",
   "scripts": {
     "build": "tailwindcss -i ./static/css/input.css -o ./static/css/styles.css",

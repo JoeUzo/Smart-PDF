@@ -1,6 +1,6 @@
-# Smart PDF
+# Ydidu-PDFs
 
-Smart PDF is a versatile, all-in-one web application designed to streamline your document management workflow. It offers a comprehensive suite of tools for processing PDF and Word documents, from basic manipulations to advanced AI-powered analysis.
+Ydidu-PDFs is a versatile, all-in-one web application designed to streamline your document management workflow. It offers a comprehensive suite of tools for processing PDF and Word documents, from basic manipulations to advanced AI-powered analysis.
 
 ## Key Features
 
@@ -78,8 +78,8 @@ Smart PDF is a versatile, all-in-one web application designed to streamline your
 
 1.  **Clone the repository**:
     ```bash
-    git clone https://github.com/JoeUzo/Smart-PDF.git
-    cd Smart-PDF
+    git clone https://github.com/JoeUzo/Ydidu-PDFs.git
+    cd Ydidu-PDFs
     ```
 
 2.  **Create and activate a virtual environment**:
