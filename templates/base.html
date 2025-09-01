@@ -27,6 +27,7 @@
                     <span class="font-serif font-bold text-lg">Ydidu-PDFs</span>
                 </a>
                 <nav class="hidden md:flex items-center space-x-6 text-sm font-medium">
+                    <a class="hover:text-primary-600 dark:hover:text-primary-400" href="/summarize">Summarize & Chat</a>
                     <a class="hover:text-primary-600 dark:hover:text-primary-400" href="/merge">Merge</a>
                     <a class="hover:text-primary-600 dark:hover:text-primary-400" href="/split">Split</a>
                     <a class="hover:text-primary-600 dark:hover:text-primary-400" href="/compress">Compress</a>
@@ -40,7 +41,6 @@
                             <a class="block px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700" href="/word-to-pdf">Word to PDF</a>
                         </div>
                     </div>
-                    <a class="hover:text-primary-600 dark:hover:text-primary-400" href="/summarize">Summarize & Chat</a>
                 </nav>
                 <div class="flex items-center gap-4">
                     <button id="theme-toggle" type="button" class="text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700 focus:outline-none focus:ring-4 focus:ring-neutral-200 dark:focus:ring-neutral-700 rounded-lg text-sm p-2.5">
@@ -65,7 +65,7 @@
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-8 flex-grow">
+    <main class="container mx-auto px-4 py-24 flex-grow">
         {% block content %}{% endblock %}
     </main>
 
