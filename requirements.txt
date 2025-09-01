@@ -2,7 +2,7 @@ fastapi==0.116.1
 uvicorn
 jinja2==3.1.6
 pypdf==5.8.0
-pdf2docx==.5.8
+pdf2docx==0.5.8
 python-docx==1.2.0
 docx2pdf==0.1.8
 pikepdf==9.10.2
