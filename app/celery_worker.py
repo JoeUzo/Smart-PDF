@@ -52,8 +52,8 @@ AI_PROMPTS = load_ai_prompts_json()
 # --- Celery Configuration ---
 celery_app = Celery(
     "tasks",
-    broker=settings.celery_broker_url,
-    backend=settings.celery_result_backend
+    broker=settings.redis_url,
+    backend=settings.redis_url
 )
 
 celery_app.conf.beat_schedule = {
