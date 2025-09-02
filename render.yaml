@@ -1,39 +1,39 @@
-# render.yaml
 services:
-  # FastAPI web app
+  # Web app
   - type: web
     name: web
-    env: docker
+    runtime: docker
     dockerfilePath: ./Dockerfile
     plan: starter
     autoDeploy: true
     healthCheckPath: /
     envVars:
       - fromGroup: ydidu-pdfs
-      # From your compose
+      # Celery, points at your private Redis service on the Render private network
       - key: CELERY_BROKER_URL
         value: redis://redis:6379/0
       - key: CELERY_RESULT_BACKEND
         value: redis://redis:6379/0
-      # Add your .env entries here, or create an Env Group in the dashboard
-      # - key: SECRET_KEY
-      #   sync: false
-    # Render allows one disk per service, so mount uploads and write logs under it
+      # Add your app secrets here, Render will prompt for values on first apply
+      - key: SECRET_KEY
+        sync: false
+      - key: API_BASE_URL
+        sync: false
+      # repeat for any other keys from your .env, keep the same names
+    # One disk per service, write logs under uploads if you need persistence
     disk:
       name: uploads-web
       mountPath: /app/uploads
       sizeGB: 5
-    # Your Dockerfile exposes port 80 and starts uvicorn on 0.0.0.0:80
 
-  # Redis as a private service, matching your compose image
-  - type: private_service
+  # Redis container as a private service
+  - type: pserv
     name: redis
-    env: docker
+    runtime: docker
     image: redis:alpine
     plan: starter
     autoDeploy: true
-    # Internal only, no public ingress
-    ipAllowList: []
+    # Private services do not expose public ports, other services reach them on the private network
     disk:
       name: redis-data
       mountPath: /data
@@ -42,7 +42,7 @@ services:
   # Celery worker
   - type: worker
     name: worker
-    env: docker
+    runtime: docker
     dockerfilePath: ./Dockerfile
     plan: starter
     autoDeploy: true
@@ -53,7 +53,10 @@ services:
         value: redis://redis:6379/0
       - key: CELERY_RESULT_BACKEND
         value: redis://redis:6379/0
-      # Add any other keys you had in .env
+      - key: SECRET_KEY
+        sync: false
+      - key: API_BASE_URL
+        sync: false
     disk:
       name: uploads-worker
       mountPath: /app/uploads
@@ -62,7 +65,7 @@ services:
   # Celery heavy queue worker
   - type: worker
     name: heavy-worker
-    env: docker
+    runtime: docker
     dockerfilePath: ./Dockerfile
     plan: starter
     autoDeploy: true
@@ -73,7 +76,10 @@ services:
         value: redis://redis:6379/0
       - key: CELERY_RESULT_BACKEND
         value: redis://redis:6379/0
-      # Add any other keys you had in .env
+      - key: SECRET_KEY
+        sync: false
+      - key: API_BASE_URL
+        sync: false
     disk:
       name: uploads-heavy
       mountPath: /app/uploads
