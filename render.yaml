@@ -9,15 +9,16 @@ services:
     healthCheckPath: /
     envVars:
       - fromGroup: ydidu-pdfs
+      # Celery, points at your private Redis service on the Render private network
       - key: CELERY_BROKER_URL
         value: redis://redis:6379/0
       - key: CELERY_RESULT_BACKEND
         value: redis://redis:6379/0
+      # App secrets, Render will prompt on first apply
       - key: SECRET_KEY
         sync: false
       - key: API_BASE_URL
         sync: false
-    # One disk per service, write logs under uploads if you need persistence
     disk:
       name: uploads-web
       mountPath: /app/uploads
@@ -43,7 +44,7 @@ services:
     dockerfilePath: ./Dockerfile
     plan: starter
     autoDeploy: true
-    startCommand: celery -A app.celery_worker.celery_app worker --loglevel=info
+    dockerCommand: celery -A app.celery_worker.celery_app worker --loglevel=info
     envVars:
       - fromGroup: ydidu-pdfs
       - key: CELERY_BROKER_URL
@@ -66,7 +67,7 @@ services:
     dockerfilePath: ./Dockerfile
     plan: starter
     autoDeploy: true
-    startCommand: celery -A app.celery_worker.celery_app worker --loglevel=info -Q heavy
+    dockerCommand: celery -A app.celery_worker.celery_app worker --loglevel=info -Q heavy
     envVars:
       - fromGroup: ydidu-pdfs
       - key: CELERY_BROKER_URL
