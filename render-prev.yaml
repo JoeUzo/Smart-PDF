@@ -1,0 +1,84 @@
+services:
+  # Web app
+  - type: web
+    name: web
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    autoDeploy: true
+    healthCheckPath: /
+    envVars:
+      - fromGroup: ydidu-pdfs
+      # Celery, points at your private Redis service on the Render private network
+      - key: CELERY_BROKER_URL
+        value: redis://redis:6379/0
+      - key: CELERY_RESULT_BACKEND
+        value: redis://redis:6379/0
+      # App secrets, Render will prompt on first apply
+      - key: SECRET_KEY
+        sync: false
+      - key: API_BASE_URL
+        sync: false
+    disk:
+      name: uploads-web
+      mountPath: /app/uploads
+      sizeGB: 5
+
+  # Redis container as a private service
+  - type: pserv
+    name: redis
+    runtime: image
+    image:
+      url: docker.io/library/redis:alpine
+    plan: starter
+    autoDeploy: true
+    disk:
+      name: redis-data
+      mountPath: /data
+      sizeGB: 1
+
+  # Celery worker
+  - type: worker
+    name: worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    autoDeploy: true
+    dockerCommand: celery -A app.celery_worker.celery_app worker --loglevel=info
+    envVars:
+      - fromGroup: ydidu-pdfs
+      - key: CELERY_BROKER_URL
+        value: redis://redis:6379/0
+      - key: CELERY_RESULT_BACKEND
+        value: redis://redis:6379/0
+      - key: SECRET_KEY
+        sync: false
+      - key: API_BASE_URL
+        sync: false
+    disk:
+      name: uploads-worker
+      mountPath: /app/uploads
+      sizeGB: 5
+
+  # Celery heavy queue worker
+  - type: worker
+    name: heavy-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    autoDeploy: true
+    dockerCommand: celery -A app.celery_worker.celery_app worker --loglevel=info -Q heavy
+    envVars:
+      - fromGroup: ydidu-pdfs
+      - key: CELERY_BROKER_URL
+        value: redis://redis:6379/0
+      - key: CELERY_RESULT_BACKEND
+        value: redis://redis:6379/0
+      - key: SECRET_KEY
+        sync: false
+      - key: API_BASE_URL
+        sync: false
+    disk:
+      name: uploads-heavy
+      mountPath: /app/uploads
+      sizeGB: 5
