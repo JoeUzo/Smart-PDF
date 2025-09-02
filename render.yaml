@@ -1,0 +1,80 @@
+# render.yaml
+services:
+  # FastAPI web app
+  - type: web
+    name: web
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    autoDeploy: true
+    healthCheckPath: /
+    envVars:
+      - fromGroup: ydidu-pdfs
+      # From your compose
+      - key: CELERY_BROKER_URL
+        value: redis://redis:6379/0
+      - key: CELERY_RESULT_BACKEND
+        value: redis://redis:6379/0
+      # Add your .env entries here, or create an Env Group in the dashboard
+      # - key: SECRET_KEY
+      #   sync: false
+    # Render allows one disk per service, so mount uploads and write logs under it
+    disk:
+      name: uploads-web
+      mountPath: /app/uploads
+      sizeGB: 5
+    # Your Dockerfile exposes port 80 and starts uvicorn on 0.0.0.0:80
+
+  # Redis as a private service, matching your compose image
+  - type: private_service
+    name: redis
+    env: docker
+    image: redis:alpine
+    plan: starter
+    autoDeploy: true
+    # Internal only, no public ingress
+    ipAllowList: []
+    disk:
+      name: redis-data
+      mountPath: /data
+      sizeGB: 1
+
+  # Celery worker
+  - type: worker
+    name: worker
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    autoDeploy: true
+    startCommand: celery -A app.celery_worker.celery_app worker --loglevel=info
+    envVars:
+      - fromGroup: ydidu-pdfs
+      - key: CELERY_BROKER_URL
+        value: redis://redis:6379/0
+      - key: CELERY_RESULT_BACKEND
+        value: redis://redis:6379/0
+      # Add any other keys you had in .env
+    disk:
+      name: uploads-worker
+      mountPath: /app/uploads
+      sizeGB: 5
+
+  # Celery heavy queue worker
+  - type: worker
+    name: heavy-worker
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    autoDeploy: true
+    startCommand: celery -A app.celery_worker.celery_app worker --loglevel=info -Q heavy
+    envVars:
+      - fromGroup: ydidu-pdfs
+      - key: CELERY_BROKER_URL
+        value: redis://redis:6379/0
+      - key: CELERY_RESULT_BACKEND
+        value: redis://redis:6379/0
+      # Add any other keys you had in .env
+    disk:
+      name: uploads-heavy
+      mountPath: /app/uploads
+      sizeGB: 5
