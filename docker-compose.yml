@@ -8,9 +8,6 @@ services:
       - logs_data:/app/logs
     depends_on:
       - redis
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     env_file:
       - .env
     networks:
@@ -32,9 +29,6 @@ services:
       - uploads_data:/app/uploads
     depends_on:
       - redis
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     networks:
       - app
   
@@ -53,9 +47,6 @@ services:
       - uploads_data:/app/uploads
     depends_on:
       - redis
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     networks:
       - app
     env_file:
