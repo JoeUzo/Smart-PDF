@@ -9,17 +9,14 @@ services:
     healthCheckPath: /
     envVars:
       - fromGroup: ydidu-pdfs
-      # Celery, points at your private Redis service on the Render private network
       - key: CELERY_BROKER_URL
         value: redis://redis:6379/0
       - key: CELERY_RESULT_BACKEND
         value: redis://redis:6379/0
-      # Add your app secrets here, Render will prompt for values on first apply
       - key: SECRET_KEY
         sync: false
       - key: API_BASE_URL
         sync: false
-      # repeat for any other keys from your .env, keep the same names
     # One disk per service, write logs under uploads if you need persistence
     disk:
       name: uploads-web
@@ -29,11 +26,11 @@ services:
   # Redis container as a private service
   - type: pserv
     name: redis
-    runtime: docker
-    image: redis:alpine
+    runtime: image
+    image:
+      url: docker.io/library/redis:alpine
     plan: starter
     autoDeploy: true
-    # Private services do not expose public ports, other services reach them on the private network
     disk:
       name: redis-data
       mountPath: /data
