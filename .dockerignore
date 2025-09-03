@@ -23,3 +23,4 @@ uploads/
 logs/
 node_modules/
 *.md
+.env
